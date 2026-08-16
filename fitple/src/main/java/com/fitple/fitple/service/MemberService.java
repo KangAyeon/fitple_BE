@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import jakarta.servlet.http.HttpSession;
+
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -70,6 +72,24 @@ public class MemberService {
                 .build();
 
     }
+
+    public SigninResponse signin(SigninRequest request, HttpSession session) {
+
+        Member member = memberRepository.findByLoginId(request.getLoginId())
+                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다."));
+
+        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        session.setAttribute("memberId", member.getId());
+
+        return SigninResponse.builder()
+                .success(true)
+                .message("로그인에 성공했습니다.")
+                .build();
+    }
+
     public SigninResponse signin(SigninRequest request) {
 
         // ID zo-hoi
@@ -86,6 +106,10 @@ public class MemberService {
                 .success(true)
                 .message("로그인에 성공했습니다.")
                 .build();
+    }
+    public Member getMemberByLoginId(String loginId) {
+        return memberRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
     }
 }
 

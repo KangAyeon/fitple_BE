@@ -10,6 +10,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import com.fitple.fitple.domain.Member;
+import jakarta.servlet.http.HttpSession;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
@@ -17,8 +20,18 @@ public class MemberController {
 
     private final MemberService memberService;
 
-//    @PostMapping("/signup")
-//    public SignupResponse signup(@Valid @RequestBody SignupRequest request) {
-//        return memberService.signup(request);
-//    }
+    @PostMapping("/signin")
+    public SigninResponse signin(
+            @Valid @RequestBody SigninRequest request,
+            HttpSession session
+    ) {
+        SigninResponse response = memberService.signin(request);
+
+        if (response.isSuccess()) {
+            Member member = memberService.getMemberByLoginId(request.getLoginId());
+            session.setAttribute("memberId", member.getId());
+        }
+
+        return response;
+    }
 }
