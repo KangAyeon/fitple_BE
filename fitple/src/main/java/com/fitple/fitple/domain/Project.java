@@ -31,4 +31,8 @@ public class Project {
     // project saeng-seong-il
     @Column(nullable = false)
     private java.time.LocalDateTime createdAt;
+
+    @Column(length = 2000)
+    private String description;
+
 }

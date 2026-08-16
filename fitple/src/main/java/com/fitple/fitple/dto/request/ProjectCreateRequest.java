@@ -18,4 +18,7 @@ public class ProjectCreateRequest {
     @Size(max = 500)
     private String iconUrl;
 
+    @Size(max = 2000)
+    private String description;
+
 }
