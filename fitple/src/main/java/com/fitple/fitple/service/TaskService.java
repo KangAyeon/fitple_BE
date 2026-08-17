@@ -59,6 +59,7 @@ public class TaskService {
 
         return TaskResponse.from(task);
     }
+    // 오늘의 과제(마이페이지-전체
     @Transactional(readOnly = true)
     public List<TaskResponse> getMyTasks(
             Long memberId,
@@ -80,4 +81,34 @@ public class TaskService {
                 .map(TaskResponse::from)
                 .toList();
     }
+    //오늘의 과제(해당프로젝트)
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getTasks(Long memberId, String status) {
+
+        List<Task> tasks;
+
+        if (status == null || status.equals("ALL")) {
+            tasks = taskRepository.findByAssigneeId(memberId);
+        } else {
+            tasks = taskRepository.findByAssigneeIdAndStatus(
+                    memberId,
+                    status
+            );
+        }
+
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+    @Transactional
+    public TaskResponse updateTaskStatus(Long taskId, String status) {
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("과제를 찾을 수 없습니다."));
+
+        task.setStatus(status);
+
+        return TaskResponse.from(task);
+    }
+
 }

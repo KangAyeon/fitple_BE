@@ -26,12 +26,30 @@ public class TaskController {
                 .status(HttpStatus.CREATED)
                 .body(taskService.createTask(request));
     }
-
+    //마이페이지(전체)
     @GetMapping("/member/{memberId}")
     public List<TaskResponse> getMyTasks(
             @PathVariable Long memberId,
             @RequestParam(required = false) String status
     ) {
         return taskService.getMyTasks(memberId, status);
+    }
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getTasks(
+            @RequestParam Long memberId,
+            @RequestParam(defaultValue = "ALL") String status
+    ) {
+        return ResponseEntity.ok(
+                taskService.getTasks(memberId, status)
+        );
+    }
+    @PatchMapping("/{taskId}/status")
+    public ResponseEntity<TaskResponse> updateTaskStatus(
+            @PathVariable Long taskId,
+            @RequestParam String status
+    ) {
+        return ResponseEntity.ok(
+                taskService.updateTaskStatus(taskId, status)
+        );
     }
 }

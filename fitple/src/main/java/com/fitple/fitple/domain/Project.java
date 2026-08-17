@@ -3,6 +3,8 @@ package com.fitple.fitple.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+//import java.time.LocalDate;
+//import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "project")

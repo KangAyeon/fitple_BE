@@ -8,12 +8,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.fitple.fitple.service.ProjectScrapService;
 
 @RestController
 @RequestMapping("/api/mypage")
 @RequiredArgsConstructor
 public class MyPageController {
 
+    private final ProjectScrapService projectScrapService;
     private final MyPageService myPageService;
 
     @GetMapping("/{memberId}")
@@ -47,6 +49,6 @@ public class MyPageController {
     public ScrapListResponse getScraps(
             @RequestParam Long memberId
     ) {
-        return myPageService.getScraps(memberId);
+        return projectScrapService.getScraps(memberId);
     }
 }

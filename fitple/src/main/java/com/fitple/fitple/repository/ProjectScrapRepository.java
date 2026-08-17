@@ -9,4 +9,14 @@ public interface ProjectScrapRepository
         extends JpaRepository<ProjectScrap, Long> {
 
     List<ProjectScrap> findByMemberId(Long memberId);
+
+    boolean existsByMemberIdAndProjectId(
+            Long memberId,
+            Long projectId
+    );
+
+    void deleteByMemberIdAndProjectId(
+            Long memberId,
+            Long projectId
+    );
 }
