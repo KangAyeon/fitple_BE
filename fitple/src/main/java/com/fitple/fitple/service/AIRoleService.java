@@ -78,6 +78,9 @@ public class AIRoleService {
                 entity,
                 String.class
         );
+        // 로그 확인 용으로 작성한,,
+        System.out.println("=== AI 응답 ===");
+        System.out.println(response.getBody());
 
         AIRoleAssignResponse result =
                 parseResponse(projectId, response.getBody());
@@ -103,33 +106,55 @@ public class AIRoleService {
 
     private String createPrompt(AIRoleAssignRequest request) {
 
+        String membersJson;
+
+        try {
+            membersJson = objectMapper.writeValueAsString(request.getMembers());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("팀원 정보 생성에 실패했습니다.", e);
+        }
+
         return """
-                프로젝트명: %s
+            프로젝트명: %s
 
-                프로젝트 설명:
-                %s
+            프로젝트 설명:
+            %s
 
-                팀원:
-                %s
+            팀원:
+            %s
 
-                각 팀원에게 프로젝트에 적합한 역할(role)과
-                세부 담당(detailRole)을 하나씩 배정해라.
+            위 팀원 목록에 존재하는 모든 팀원에게
+            프로젝트에 적합한 역할(role)과
+            세부 담당(detailRole)을 하나씩 배정하라.
 
-                반드시 다음 JSON 형식으로만 답변해라.
+            매우 중요한 규칙:
+            1. memberId는 반드시 위 팀원 목록에 존재하는 값을 그대로 사용하라.
+            2. 새로운 memberId를 생성하거나 추측하지 마라.
+            3. 위 목록에 없는 memberId를 절대 사용하지 마라.
+            4. 입력된 팀원 수와 동일한 수의 팀원을 반환하라.
+            5. 각 팀원은 반드시 한 번씩만 반환하라.
 
+            반드시 JSON 객체만 반환하시오.
+
+            Markdown 코드 블록(```json ... ```)형식을 사용하지 마시오.
+            설명이나 추가 문장도 작성하지 마시오.
+
+            반드시 다음 형식의 순수 JSON으로만 응답하시오.
+            변수명은 고정하고 값만 변경하시오.
+
+            {
+              "members": [
                 {
-                  "members": [
-                    {
-                      "memberId": 1,
-                      "role": "백엔드",
-                      "detailRole": "API 개발"
-                    }
-                  ]
+                  "memberId": 1,
+                  "role": "프론트엔드",
+                  "detailRole": "UI/UX 디자인"
                 }
-                """.formatted(
+              ]
+            }
+            """.formatted(
                 request.getProjectName(),
                 request.getProjectDescription(),
-                request.getMembers()
+                membersJson
         );
     }
 
@@ -147,6 +172,18 @@ public class AIRoleService {
                     .path("message")
                     .path("content")
                     .asText();
+
+            content = content.trim();
+
+            if (content.startsWith("```json")) {
+                content = content.substring(7);
+            }
+
+            if (content.endsWith("```")) {
+                content = content.substring(0, content.length() - 3);
+            }
+
+            content = content.trim();
 
             JsonNode result = objectMapper.readTree(content);
 
