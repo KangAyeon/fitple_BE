@@ -23,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.fitple.fitple.domain.ChatRoom;
+import com.fitple.fitple.repository.ChatRoomRepository;
+
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
@@ -30,6 +33,8 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
 
     private final ProjectMemberRepository projectMemberRepository;
+
+    private final ChatRoomRepository chatRoomRepository;
 
     // 프로젝트 전체 조회
     public List<ProjectResponse> getProjects() {
@@ -55,7 +60,8 @@ public class ProjectService {
     public ProjectResponse createProject(ProjectCreateRequest request, Long memberId) {
 
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         Project project = Project.builder()
                 .name(request.getName())
@@ -65,6 +71,12 @@ public class ProjectService {
                 .build();
 
         Project savedProject = projectRepository.save(project);
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .project(savedProject)
+                .build();
+
+        chatRoomRepository.save(chatRoom);
 
         ProjectMember projectMember = ProjectMember.builder()
                 .project(savedProject)
