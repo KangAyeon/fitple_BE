@@ -2,6 +2,7 @@ package com.fitple.fitple.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project")
@@ -32,7 +33,10 @@ public class Project {
     @Column(nullable = false)
     private java.time.LocalDateTime createdAt;
 
+    // project seol-myeong
     @Column(length = 2000)
     private String description;
 
+    // 모집 마감일
+    private LocalDateTime recruitDeadline;
 }
