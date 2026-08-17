@@ -17,6 +17,9 @@ import com.fitple.fitple.dto.response.ProjectDetailResponse;
 import com.fitple.fitple.dto.response.ProjectMemberResponse;
 
 import com.fitple.fitple.repository.MemberRepository;
+import com.fitple.fitple.dto.request.ProjectUpdateRequest;
+
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -71,5 +74,37 @@ public class ProjectService {
         projectMemberRepository.save(projectMember);
 
         return ProjectResponse.from(savedProject);
+    }
+    public ProjectResponse updateProject(
+            Long projectId,
+            ProjectUpdateRequest request
+    ) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 프로젝트입니다.")
+                );
+
+        project.setName(request.getName());
+        project.setIconUrl(request.getIconUrl());
+        project.setDescription(request.getDescription());
+
+        if (request.getRecruiting() != null) {
+            project.setRecruiting(request.getRecruiting());
+        }
+
+        Project updatedProject = projectRepository.save(project);
+
+        return ProjectResponse.from(updatedProject);
+    }
+    @Transactional
+    public void deleteProject(Long projectId) {
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
+
+        projectMemberRepository.deleteByProjectId(projectId);
+
+        projectRepository.delete(project);
     }
 }

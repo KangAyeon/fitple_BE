@@ -32,12 +32,14 @@ public class SecurityConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+
         registry.addMapping("/**")
                 .allowedOrigins(
                         "http://127.0.0.1:5500",
                         "http://localhost:5500",
                         "http://localhost:8080",
-                        "http://localhost:8081"
+                        "http://localhost:8081",
+                        "https://aspect-engineers-ban-physician.trycloudflare.com"
                 )
                 .allowedMethods(
                         "GET",

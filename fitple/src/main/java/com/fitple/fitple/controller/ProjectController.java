@@ -13,6 +13,7 @@ import com.fitple.fitple.dto.response.ProjectDetailResponse;
 import com.fitple.fitple.domain.Member;
 import com.fitple.fitple.repository.MemberRepository;
 import jakarta.servlet.http.HttpSession;
+import com.fitple.fitple.dto.request.ProjectUpdateRequest;
 
 import java.util.List;
 
@@ -51,5 +52,32 @@ public class ProjectController {
         }
 
         return projectService.createProject(request, memberId);
+    }
+    @PutMapping("/{projectId}")
+    public ProjectResponse updateProject(
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectUpdateRequest request,
+            HttpSession session
+    ) {
+        Long memberId = (Long) session.getAttribute("memberId");
+
+        if (memberId == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+
+        return projectService.updateProject(projectId, request);
+    }
+    @DeleteMapping("/{projectId}")
+    public void deleteProject(
+            @PathVariable Long projectId,
+            HttpSession session
+    ) {
+        Long memberId = (Long) session.getAttribute("memberId");
+
+        if (memberId == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+
+        projectService.deleteProject(projectId);
     }
 }
