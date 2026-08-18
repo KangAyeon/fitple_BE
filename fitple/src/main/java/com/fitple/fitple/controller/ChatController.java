@@ -20,6 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
 import com.fitple.fitple.dto.response.MeetingMinuteResponse;
 
+import com.fitple.fitple.dto.response.TaskResponse;
+
 import java.util.List;
 
 @RestController
@@ -155,6 +157,14 @@ public class ChatController {
                         projectId,
                         meetingMinuteId
                 )
+        );
+    }
+    @PostMapping("/rooms/{roomId}/tasks/ai-generate")
+    public ResponseEntity<List<TaskResponse>> generateTodayTasks(
+            @PathVariable Long roomId
+    ) {
+        return ResponseEntity.ok(
+                chatService.generateTodayTasks(roomId)
         );
     }
 }

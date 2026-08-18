@@ -3,6 +3,7 @@ package com.fitple.fitple.repository;
 import com.fitple.fitple.domain.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
@@ -15,4 +16,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     );
 
     List<Task> findByProjectId(Long projectId);
+
+    List<Task> findByProjectIdAndDueDate(
+            Long projectId,
+            LocalDate dueDate
+    );
 }

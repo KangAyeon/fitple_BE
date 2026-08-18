@@ -42,6 +42,13 @@ import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
 import com.fitple.fitple.dto.response.MeetingMinuteResponse;
 import com.fitple.fitple.repository.MeetingMinuteRepository;
 
+//import com.fitple.fitple.domain.Task;
+//import com.fitple.fitple.domain.TaskStatus;
+import com.fitple.fitple.dto.response.TaskResponse;
+//import java.time.LocalDate;
+
+//import com.fitple.fitple.domain.ProjectMember;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -61,6 +68,10 @@ public class ChatService {
     private final ChatFileRepository chatFileRepository;
 
     private final MeetingMinuteRepository meetingMinuteRepository;
+
+    private final TaskRepository taskRepository;
+
+    private final AITaskService aiTaskService;
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -327,4 +338,17 @@ public class ChatService {
         return MeetingMinuteResponse.from(meetingMinute);
     }
 
+    @Transactional
+    public List<TaskResponse> generateTodayTasks(Long roomId) {
+
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 채팅방입니다."
+                        ));
+
+        Long projectId = chatRoom.getProject().getId();
+
+        return aiTaskService.generateTodayTasks(projectId);
+    }
 }
