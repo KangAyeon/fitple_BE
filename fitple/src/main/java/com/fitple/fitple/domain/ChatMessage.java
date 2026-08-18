@@ -5,6 +5,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "chat_message")
 @Getter
@@ -35,4 +38,12 @@ public class ChatMessage {
     // 메시지 작성 시간
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(
+            mappedBy = "chatMessage",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<ChatFile> files = new ArrayList<>();
 }

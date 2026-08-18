@@ -5,6 +5,7 @@ import com.fitple.fitple.dto.response.ChatRoomResponse;
 import com.fitple.fitple.service.ChatService;
 import com.fitple.fitple.service.ChatTranslationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fitple.fitple.dto.request.ChatMessageRequest;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import com.fitple.fitple.dto.request.ChatTranslationRequest;
 import com.fitple.fitple.dto.response.ChatTranslationResponse;
 import com.fitple.fitple.service.ChatTranslationService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -60,13 +62,20 @@ public class ChatController {
     }
     @GetMapping("/rooms/{roomId}/messages")
     public ResponseEntity<List<ChatMessageResponse>> getMessages(
-            @PathVariable Long roomId
+            @PathVariable Long roomId,
+            @RequestParam(required = false) Integer size
     ) {
+        if (size != null) {
+            return ResponseEntity.ok(
+                    chatService.getPreviousMessages(roomId, size)
+            );
+        }
+
         return ResponseEntity.ok(
                 chatService.getMessages(roomId)
         );
     }
-    
+
     @PostMapping("/translate")
     public ResponseEntity<ChatTranslationResponse> translate(
             @Valid @RequestBody ChatTranslationRequest request
@@ -83,5 +92,31 @@ public class ChatController {
         return ResponseEntity.ok(
                 chatService.createChatRoom(projectId)
         );
+    }
+    @GetMapping("/rooms/{roomId}/messages/previous")
+    public ResponseEntity<List<ChatMessageResponse>> getPreviousMessages(
+            @PathVariable Long roomId,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                chatService.getPreviousMessages(roomId, size)
+        );
+    }
+    @PostMapping(
+            value = "/rooms/{projectId}/files",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Void> uploadFile(
+            @PathVariable Long projectId,
+            @RequestParam Long memberId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        chatService.uploadFile(
+                projectId,
+                memberId,
+                file
+        );
+
+        return ResponseEntity.ok().build();
     }
 }

@@ -1,12 +1,10 @@
 package com.fitple.fitple.dto.response;
 
 import com.fitple.fitple.domain.ChatMessage;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -17,9 +15,9 @@ public class ChatMessageResponse {
     private Long messageId;
     private Long roomId;
     private Long memberId;
-    private String memberName;
     private String content;
     private LocalDateTime createdAt;
+    private List<ChatFileResponse> files;
 
     public static ChatMessageResponse from(ChatMessage message) {
 
@@ -27,9 +25,14 @@ public class ChatMessageResponse {
                 .messageId(message.getId())
                 .roomId(message.getChatRoom().getId())
                 .memberId(message.getMember().getId())
-                .memberName(message.getMember().getName())
                 .content(message.getContent())
                 .createdAt(message.getCreatedAt())
+                .files(
+                        message.getFiles()
+                                .stream()
+                                .map(ChatFileResponse::from)
+                                .toList()
+                )
                 .build();
     }
 }

@@ -19,6 +19,24 @@ import com.fitple.fitple.repository.ChatRoomRepository;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.repository.ProjectRepository;
 
+import com.fitple.fitple.domain.ChatMessage;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.Comparator;
+import java.util.List;
+
+import com.fitple.fitple.domain.ChatFile;
+import com.fitple.fitple.repository.ChatFileRepository;
+import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.beans.factory.annotation.Value;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,6 +52,11 @@ public class ChatService {
     private final MemberRepository memberRepository;
 
     private final ProjectRepository projectRepository;
+
+    private final ChatFileRepository chatFileRepository;
+
+    @Value("${file.upload-dir:uploads}")
+    private String uploadDir;
 
     // 채팅 가능한 프로젝트 목록 조회
     @Transactional(readOnly = true)
@@ -126,4 +149,107 @@ public class ChatService {
 
         return ChatRoomResponse.from(savedChatRoom);
     }
+    @Transactional(readOnly = true)
+    public List<ChatMessageResponse> getPreviousMessages(
+            Long roomId,
+            int size
+    ) {
+
+        if (!chatRoomRepository.existsById(roomId)) {
+            throw new IllegalArgumentException("존재하지 않는 채팅방입니다.");
+        }
+
+        if (size <= 0) {
+            throw new IllegalArgumentException("size는 1 이상이어야 합니다.");
+        }
+
+        List<ChatMessage> messages =
+                chatMessageRepository
+                        .findTopByChatRoomIdOrderByCreatedAtDesc(
+                                roomId,
+                                PageRequest.of(0, size)
+                        );
+
+        return messages.stream()
+                .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
+                .map(ChatMessageResponse::from)
+                .toList();
+    }
+    @Transactional
+    public void uploadFile(
+            Long projectId,
+            Long memberId,
+            MultipartFile file
+    ) {
+
+        ChatRoom chatRoom = chatRoomRepository.findByProjectId(projectId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하는 채팅방이 없습니다."));
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        }
+
+        String originalFileName = file.getOriginalFilename();
+
+        if (originalFileName == null || originalFileName.isBlank()) {
+            throw new IllegalArgumentException("파일명이 없습니다.");
+        }
+
+        try {
+            Path uploadPath = Paths.get(uploadDir, "chat");
+
+            Files.createDirectories(uploadPath);
+
+            String extension = "";
+
+            int extensionIndex = originalFileName.lastIndexOf(".");
+
+            if (extensionIndex >= 0) {
+                extension = originalFileName.substring(extensionIndex);
+            }
+
+            String savedFileName =
+                    UUID.randomUUID() + extension;
+
+            Path targetPath =
+                    uploadPath.resolve(savedFileName);
+
+            file.transferTo(targetPath.toFile());
+
+            String fileUrl =
+                    "/uploads/chat/" + savedFileName;
+
+            ChatMessage message = ChatMessage.builder()
+                    .chatRoom(chatRoom)
+                    .member(member)
+                    .content("")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            ChatMessage savedMessage =
+                    chatMessageRepository.save(message);
+
+            ChatFile chatFile = ChatFile.builder()
+                    .chatMessage(savedMessage)
+                    .originalFileName(originalFileName)
+                    .fileUrl(fileUrl)
+                    .contentType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .build();
+
+            chatFileRepository.save(chatFile);
+
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "파일 저장에 실패했습니다.",
+                    e
+            );
+        }
+    }
+
 }
