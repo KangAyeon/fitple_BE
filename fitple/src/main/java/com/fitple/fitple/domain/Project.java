@@ -2,9 +2,9 @@ package com.fitple.fitple.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-//import java.time.LocalDate;
-//import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "project")
@@ -19,26 +19,44 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // irum of project
     @Column(nullable = false, length = 100)
-    private String name;
+    private String title;
 
-    // project icon Gyeong-ro
-    @Column(length = 500)
-    private String iconUrl;
-
-    // recruiting yeo-bu
+    @Lob
     @Column(nullable = false)
-    private boolean recruiting;
+    private String introText;
 
-    // project saeng-seong-il
+    private Integer recruitCount;
+
+    // 콤마구분 문자열로 저장 (예: "기획,촬영,영상 편집")
+    private String roles;
+
+    private LocalDate periodEnd;
+
+    private String meetingSchedule;
+
+    private LocalDate deadline;
+
+    private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private java.time.LocalDateTime createdAt;
+    @Builder.Default
+    private ProjectStatus status = ProjectStatus.RECRUITING;
 
-    // project seol-myeong
-    @Column(length = 2000)
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
-    // 모집 마감일
-    private LocalDateTime recruitDeadline;
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public enum ProjectStatus {
+        RECRUITING, IN_PROGRESS, CLOSED
+    }
 }

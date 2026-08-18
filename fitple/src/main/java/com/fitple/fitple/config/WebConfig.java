@@ -1,20 +1,22 @@
 package com.fitple.fitple.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.File;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Override
-    public void addResourceHandlers(
-            ResourceHandlerRegistry registry
-    ) {
+    @Value("${file.upload-dir:./uploads}")
+    private String uploadDir;
 
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(
-                        "file:" + System.getProperty("user.dir") + "/uploads/"
-                );
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String absolutePath = new File(uploadDir).getAbsolutePath();
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("file:" + absolutePath + File.separator);
     }
 }

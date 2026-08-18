@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,13 +16,15 @@ public class ProjectUpdateRequest {
 
     @NotBlank
     @Size(max = 100)
-    private String name;
-
-    @Size(max = 500)
-    private String iconUrl;
+    private String title;
 
     @Size(max = 2000)
-    private String description;
+    private String introText;
 
-    private Boolean recruiting;
+    private Integer recruitCount;
+    private List<String> roles;
+    private LocalDate periodEnd;
+    private String meetingSchedule;
+    private LocalDate deadline;
+    private String imageUrl;
 }

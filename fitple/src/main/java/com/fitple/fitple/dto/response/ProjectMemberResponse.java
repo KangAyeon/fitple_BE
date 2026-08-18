@@ -1,34 +1,28 @@
 package com.fitple.fitple.dto.response;
 
 import com.fitple.fitple.domain.ProjectMember;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProjectMemberResponse {
 
-    private final Long memberId;
-    private final String name;
-    private final String role;
-    private final String detailRole;
-
-    private ProjectMemberResponse(
-            Long memberId,
-            String name,
-            String role,
-            String detailRole
-    ) {
-        this.memberId = memberId;
-        this.name = name;
-        this.role = role;
-        this.detailRole = detailRole;
-    }
+    private Long memberId;
+    private String name;
+    private String role;
+    private String detailRole;
 
     public static ProjectMemberResponse from(ProjectMember projectMember) {
-        return new ProjectMemberResponse(
-                projectMember.getMember().getId(),
-                projectMember.getMember().getName(),
-                projectMember.getRole(),
-                projectMember.getDetailRole()
-        );
+        return ProjectMemberResponse.builder()
+                .memberId(projectMember.getMember().getId())
+                .name(projectMember.getMember().getName())
+                .role(projectMember.getRole())
+                .detailRole(projectMember.getDetailRole())
+                .build();
     }
 }

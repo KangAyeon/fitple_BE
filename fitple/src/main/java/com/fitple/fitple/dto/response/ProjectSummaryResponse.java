@@ -15,23 +15,16 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProjectResponse {
+public class ProjectSummaryResponse {
 
     private Long projectId;
     private String title;
-    private String introText;
-    private Integer recruitCount;
     private List<String> roles;
-    private LocalDate periodEnd;
-    private String meetingSchedule;
-    private LocalDate deadline;
     private Long dDay;
     private String status;
     private String imageUrl;
-    private Long memberId;
-    private String memberName;
 
-    public static ProjectResponse from(Project project) {
+    public static ProjectSummaryResponse from(Project project) {
         Long dDay = (project.getDeadline() != null)
                 ? ChronoUnit.DAYS.between(LocalDate.now(), project.getDeadline())
                 : null;
@@ -40,20 +33,13 @@ public class ProjectResponse {
                 ? List.of()
                 : Arrays.asList(project.getRoles().split(","));
 
-        return ProjectResponse.builder()
+        return ProjectSummaryResponse.builder()
                 .projectId(project.getId())
                 .title(project.getTitle())
-                .introText(project.getIntroText())
-                .recruitCount(project.getRecruitCount())
                 .roles(roleList)
-                .periodEnd(project.getPeriodEnd())
-                .meetingSchedule(project.getMeetingSchedule())
-                .deadline(project.getDeadline())
                 .dDay(dDay)
                 .status(project.getStatus().name())
                 .imageUrl(project.getImageUrl())
-                .memberId(project.getMember().getId())
-                .memberName(project.getMember().getName())
                 .build();
     }
 }
