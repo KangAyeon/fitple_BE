@@ -2,14 +2,18 @@ package com.fitple.fitple.service;
 
 import com.fitple.fitple.domain.Member;
 import com.fitple.fitple.domain.Project;
+import com.fitple.fitple.domain.ProjectMember;
 import com.fitple.fitple.dto.request.ProjectAiGenerateRequest;
 import com.fitple.fitple.dto.request.ProjectCreateRequest;
 import com.fitple.fitple.dto.request.ProjectUpdateRequest;
 import com.fitple.fitple.dto.response.ProjectAiGenerateResponse;
 import com.fitple.fitple.dto.response.ProjectCreateResponse;
+import com.fitple.fitple.dto.response.ProjectMemberResponse;
+import com.fitple.fitple.dto.response.ProjectMyResponse;
 import com.fitple.fitple.dto.response.ProjectResponse;
 import com.fitple.fitple.dto.response.ProjectSummaryResponse;
 import com.fitple.fitple.repository.MemberRepository;
+import com.fitple.fitple.repository.ProjectMemberRepository;
 import com.fitple.fitple.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     /**
      * 사용자가 직접 쓴 소개글(+파일이 있으면 파일)을 참고해서
@@ -72,6 +77,14 @@ public class ProjectService {
                 .build();
 
         Project saved = projectRepository.save(project);
+
+        // 프로젝트를 만든 사람을 팀원(ProjectMember)으로 자동 등록
+        ProjectMember creatorMembership = ProjectMember.builder()
+                .project(saved)
+                .member(member)
+                .role(null) // 역할은 AI 배정 전까지 미정
+                .build();
+        projectMemberRepository.save(creatorMembership);
 
         // TODO: 실제 QR/초대링크 생성 로직으로 교체 (별도 InviteCodeGenerator 등)
         String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -140,6 +153,26 @@ public class ProjectService {
      */
     public List<ProjectSummaryResponse> getRecommendedProjects(Long memberId) {
         return getProjects(Project.ProjectStatus.RECRUITING);
+    }
+
+    /**
+     * 내가 진행중인 프로젝트 목록 (ProjectMember 기준).
+     */
+    public List<ProjectMyResponse> getMyProjects(Long memberId) {
+        List<ProjectMember> memberships = projectMemberRepository.findByMemberId(memberId);
+        return memberships.stream()
+                .map(ProjectMyResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 프로젝트의 팀원 리스트.
+     */
+    public List<ProjectMemberResponse> getProjectMembers(Long projectId) {
+        List<ProjectMember> memberships = projectMemberRepository.findByProjectId(projectId);
+        return memberships.stream()
+                .map(ProjectMemberResponse::from)
+                .collect(Collectors.toList());
     }
 
     private Project getProjectOrThrow(Long projectId) {

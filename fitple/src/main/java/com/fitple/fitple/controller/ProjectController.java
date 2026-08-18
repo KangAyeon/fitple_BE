@@ -6,6 +6,8 @@ import com.fitple.fitple.dto.request.ProjectUpdateRequest;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.dto.response.ProjectAiGenerateResponse;
 import com.fitple.fitple.dto.response.ProjectCreateResponse;
+import com.fitple.fitple.dto.response.ProjectMemberResponse;
+import com.fitple.fitple.dto.response.ProjectMyResponse;
 import com.fitple.fitple.dto.response.ProjectResponse;
 import com.fitple.fitple.dto.response.ProjectSummaryResponse;
 import com.fitple.fitple.service.ProjectService;
@@ -84,5 +86,21 @@ public class ProjectController {
             @Parameter(description = "로그인 회원 ID") @RequestParam Long memberId
     ) {
         return ResponseEntity.ok(projectService.getRecommendedProjects(memberId));
+    }
+
+    @Operation(summary = "내가 진행중인 프로젝트 목록")
+    @GetMapping("/my")
+    public ResponseEntity<List<ProjectMyResponse>> getMyProjects(
+            @Parameter(description = "로그인 회원 ID") @RequestParam Long memberId
+    ) {
+        return ResponseEntity.ok(projectService.getMyProjects(memberId));
+    }
+
+    @Operation(summary = "프로젝트 팀원 리스트")
+    @GetMapping("/{projectId}/members")
+    public ResponseEntity<List<ProjectMemberResponse>> getProjectMembers(
+            @PathVariable Long projectId
+    ) {
+        return ResponseEntity.ok(projectService.getProjectMembers(projectId));
     }
 }
