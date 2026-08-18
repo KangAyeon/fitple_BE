@@ -1,12 +1,12 @@
 package com.fitple.fitple.controller;
 
+import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.dto.request.ProjectAiGenerateRequest;
 import com.fitple.fitple.dto.request.ProjectCreateRequest;
 import com.fitple.fitple.dto.request.ProjectUpdateRequest;
-import com.fitple.fitple.domain.Project;
+import com.fitple.fitple.dto.response.AssignRoleResponse;
 import com.fitple.fitple.dto.response.ProjectAiGenerateResponse;
 import com.fitple.fitple.dto.response.ProjectCreateResponse;
-import com.fitple.fitple.dto.response.AssignRoleResponse;
 import com.fitple.fitple.dto.response.ProjectMemberResponse;
 import com.fitple.fitple.dto.response.ProjectMyResponse;
 import com.fitple.fitple.dto.response.ProjectResponse;
@@ -14,6 +14,8 @@ import com.fitple.fitple.dto.response.ProjectSummaryResponse;
 import com.fitple.fitple.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,9 +40,10 @@ public class ProjectController {
     @Operation(summary = "프로젝트 생성", description = "최종 확정된 프로젝트 정보를 저장하고 초대 링크/QR코드를 생성합니다.")
     @PostMapping
     public ResponseEntity<ProjectCreateResponse> createProject(
-            @RequestBody ProjectCreateRequest request,
-            @Parameter(description = "작성자(로그인 회원) ID") @RequestParam Long memberId
+            @Valid @RequestBody ProjectCreateRequest request,
+            HttpSession session
     ) {
+        Long memberId = getMemberIdOrThrow(session);
         return ResponseEntity.ok(projectService.createProject(request, memberId));
     }
 
@@ -48,9 +51,10 @@ public class ProjectController {
     @PutMapping("/{projectId}")
     public ResponseEntity<Void> updateProject(
             @PathVariable Long projectId,
-            @RequestBody ProjectUpdateRequest request,
-            @Parameter(description = "요청자(로그인 회원) ID") @RequestParam Long memberId
+            @Valid @RequestBody ProjectUpdateRequest request,
+            HttpSession session
     ) {
+        Long memberId = getMemberIdOrThrow(session);
         projectService.updateProject(projectId, request, memberId);
         return ResponseEntity.ok().build();
     }
@@ -59,8 +63,9 @@ public class ProjectController {
     @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(
             @PathVariable Long projectId,
-            @Parameter(description = "요청자(로그인 회원) ID") @RequestParam Long memberId
+            HttpSession session
     ) {
+        Long memberId = getMemberIdOrThrow(session);
         projectService.deleteProject(projectId, memberId);
         return ResponseEntity.noContent().build();
     }
@@ -84,16 +89,18 @@ public class ProjectController {
     @Operation(summary = "개인 추천 프로젝트 목록")
     @GetMapping("/recommended")
     public ResponseEntity<List<ProjectSummaryResponse>> getRecommendedProjects(
-            @Parameter(description = "로그인 회원 ID") @RequestParam Long memberId
+            HttpSession session
     ) {
+        Long memberId = getMemberIdOrThrow(session);
         return ResponseEntity.ok(projectService.getRecommendedProjects(memberId));
     }
 
     @Operation(summary = "내가 진행중인 프로젝트 목록")
     @GetMapping("/my")
     public ResponseEntity<List<ProjectMyResponse>> getMyProjects(
-            @Parameter(description = "로그인 회원 ID") @RequestParam Long memberId
+            HttpSession session
     ) {
+        Long memberId = getMemberIdOrThrow(session);
         return ResponseEntity.ok(projectService.getMyProjects(memberId));
     }
 
@@ -111,5 +118,13 @@ public class ProjectController {
             @PathVariable Long projectId
     ) {
         return ResponseEntity.ok(projectService.assignRoles(projectId));
+    }
+
+    private Long getMemberIdOrThrow(HttpSession session) {
+        Long memberId = (Long) session.getAttribute("memberId");
+        if (memberId == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        return memberId;
     }
 }

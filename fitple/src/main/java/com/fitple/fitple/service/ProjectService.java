@@ -2,6 +2,7 @@ package com.fitple.fitple.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitple.fitple.domain.ChatRoom;
 import com.fitple.fitple.domain.Member;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.domain.ProjectMember;
@@ -15,6 +16,7 @@ import com.fitple.fitple.dto.response.ProjectMemberResponse;
 import com.fitple.fitple.dto.response.ProjectMyResponse;
 import com.fitple.fitple.dto.response.ProjectResponse;
 import com.fitple.fitple.dto.response.ProjectSummaryResponse;
+import com.fitple.fitple.repository.ChatRoomRepository;
 import com.fitple.fitple.repository.MemberRepository;
 import com.fitple.fitple.repository.ProjectMemberRepository;
 import com.fitple.fitple.repository.ProjectRepository;
@@ -22,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ChatRoomRepository chatRoomRepository;
     private final QrCodeService qrCodeService;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
@@ -107,6 +109,7 @@ public class ProjectService {
 
     /**
      * 최종 확정된 프로젝트 정보를 저장한다.
+     * 생성과 동시에: 작성자를 팀원으로 자동 등록, 초대 QR 생성, 채팅방 생성.
      */
     public ProjectCreateResponse createProject(ProjectCreateRequest request, Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -137,6 +140,12 @@ public class ProjectService {
                 .role(null) // 역할은 AI 배정 전까지 미정
                 .build();
         projectMemberRepository.save(creatorMembership);
+
+        // 프로젝트 전용 채팅방 생성
+        ChatRoom chatRoom = ChatRoom.builder()
+                .project(saved)
+                .build();
+        chatRoomRepository.save(chatRoom);
 
         // 초대링크 생성 후, 그 링크를 QR 이미지로 실제 생성
         String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -171,10 +180,13 @@ public class ProjectService {
 
     /**
      * 프로젝트 삭제. 게시자 본인만 삭제 가능하다.
+     * 연관된 ProjectMember를 먼저 정리해야 FK 제약 위반이 나지 않는다.
      */
     public void deleteProject(Long projectId, Long memberId) {
         Project project = getProjectOrThrow(projectId);
         validateOwner(project, memberId);
+
+        projectMemberRepository.deleteByProjectId(projectId);
         projectRepository.delete(project);
     }
 
@@ -229,8 +241,6 @@ public class ProjectService {
 
     /**
      * 프로젝트 팀원들의 프로필을 분석해 AI(Gemini)가 역할을 배정한다.
-     * 주의: 현재 Member 엔티티에는 이름 외 프로필/역량 정보가 없어, 프로젝트 소개글과
-     * 모집 역할, 팀원 이름을 기준으로 배정한다. 추후 프로필/역량 필드가 추가되면 프롬프트에 반영 필요.
      */
     public List<AssignRoleResponse> assignRoles(Long projectId) {
         Project project = getProjectOrThrow(projectId);

@@ -1,0 +1,263 @@
+package com.fitple.fitple.service;
+
+import com.fitple.fitple.domain.Member;
+import com.fitple.fitple.domain.ProfileFile;
+import com.fitple.fitple.dto.response.ProfileFileResponse;
+import com.fitple.fitple.repository.ChatFileRepository;
+import com.fitple.fitple.repository.MemberRepository;
+import com.fitple.fitple.dto.request.ProfileGenerateRequest;
+import com.fitple.fitple.dto.request.ProfileRegenerateRequest;
+import com.fitple.fitple.dto.request.ProfileUpdateRequest;
+import com.fitple.fitple.dto.response.MessageResponse;
+import com.fitple.fitple.dto.response.ProfileDetailResponse;
+import com.fitple.fitple.dto.response.ProfileResponse;
+import com.fitple.fitple.repository.ProfileFileRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.fitple.fitple.domain.ChatFile;
+
+import com.fitple.fitple.domain.ProfileFile;
+import com.fitple.fitple.repository.ProfileFileRepository;
+
+import com.fitple.fitple.dto.request.FileRequest;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+
+@Service
+@Transactional(readOnly = true)
+public class ProfileService {
+
+    private final OpenAiService openAiService;
+    private final MemberRepository memberRepository;
+
+
+//    private final ChatFileRepository chatFileRepository;
+    private final FileContentService fileContentService;
+
+    private final ProfileFileRepository profileFileRepository;
+    private final FileStorageService fileStorageService;
+
+
+
+    public ProfileService(
+            OpenAiService openAiService,
+            MemberRepository memberRepository,
+            ProfileFileRepository profileFileRepository,
+            FileStorageService fileStorageService,
+            FileContentService fileContentService
+    ) {
+        this.openAiService = openAiService;
+        this.memberRepository = memberRepository;
+        this.profileFileRepository = profileFileRepository;
+        this.fileStorageService = fileStorageService;
+        this.fileContentService = fileContentService;
+    }
+
+
+    private static final String SYSTEM_PROMPT = """
+        당신은 사용자의 입력 정보와 첨부파일 정보를 기반으로 프로필 소개글을 작성하는 AI 핏봇입니다.
+        반드시 아래의 정형화된 형식을 엄격히 지켜서 출력하세요. 다른 서론이나 결론 문구는 포함하지 마세요.
+
+        <AI가 작성한 프로필>
+        프로젝트 경험
+        [요약 내용]
+        담당 역할
+        [요약 내용]
+        사용 툴
+        [요약 내용]
+        협업 스타일
+        [요약 내용]
+        """;
+
+    @Transactional
+    public ProfileResponse generateProfile(ProfileGenerateRequest request) {
+
+        String fileContents = extractUsedFileContents(
+                request.getUsedFiles()
+        );
+
+        String userPrompt = String.format(
+                """
+                사용자 작성 소개:
+                %s
+    
+                첨부파일 내용:
+                %s
+    
+                편집 가능 여부:
+                %s
+    
+                위의 사용자 소개와 첨부파일 내용을 종합하여
+                사용자의 실제 경험과 역량이 잘 드러나는 프로필을 작성하세요.
+                """,
+                request.getProfileSummary(),
+                fileContents,
+                request.isEditable()
+        );
+
+        String aiResult =
+                openAiService.callGpt(
+                        SYSTEM_PROMPT,
+                        userPrompt
+                );
+
+        return new ProfileResponse(aiResult);
+    }
+
+
+    public ProfileResponse regenerateProfile(
+            ProfileGenerateRequest request
+    ) {
+
+        String userPrompt = String.format(
+                "사용자가 제공한 프로필 내용: %s\n참고 파일: %s\n편집 가능 여부: %s\n" +
+                        "위 정보를 바탕으로 프로필을 다시 작성하세요.",
+                request.getProfileSummary(),
+                formatFiles(request.getUsedFiles()),
+                request.isEditable()
+        );
+
+        String aiResult =
+                openAiService.callGpt(SYSTEM_PROMPT, userPrompt);
+
+        return new ProfileResponse(aiResult);
+    }
+
+    private String formatFiles(List<FileRequest> files) {
+
+        if (files == null || files.isEmpty()) {
+            return "없음";
+        }
+
+        return files.stream()
+                .map(file ->
+                        String.format(
+                                "파일ID: %s, 파일명: %s, URL: %s",
+                                file.getFileId(),
+                                file.getOriginalName(),
+                                file.getFileUrl()
+                        )
+                )
+                .collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+//    public ProfileResponse regenerateProfile(ProfileRegenerateRequest request) {
+//        String userPrompt = String.format("기존 프로필:\n%s\n\n추가 요구사항:\n%s",
+//                request.previousProfile(),
+//                request.additionalPrompt());
+//
+//        String aiResult = openAiService.callGpt(SYSTEM_PROMPT, userPrompt);
+//        return new ProfileResponse(aiResult);
+//    }
+
+    public ProfileDetailResponse getProfile(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        return new ProfileDetailResponse(
+                member.getProfileImage(),
+                member.getName(),
+                member.getIntroduction() != null ? member.getIntroduction().getContent() : null
+        );
+    }
+
+    @Transactional
+    public MessageResponse updateProfile(Long memberId, ProfileUpdateRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 프사 업데이트
+        member.updateProfileImage(request.profileImage());
+        // 이름은 회원가입 시 설정된 이름(request.name()) 사용 및 검증
+        // 소개글(profileSummary) 저장/수정 처리
+        member.updateIntroduction(request.profileSummary());
+
+        return new MessageResponse("프로필이 수정되었습니다.");
+    }
+
+    private String extractUsedFileContents(
+            List<FileRequest> files
+    ) {
+
+        if (files == null || files.isEmpty()) {
+            return "첨부파일 없음";
+        }
+
+        StringBuilder result = new StringBuilder();
+
+        for (FileRequest fileRequest : files) {
+
+            if (fileRequest.getFileId() == null) {
+                continue;
+            }
+
+            ProfileFile profileFile =
+                    profileFileRepository.findById(fileRequest.getFileId())
+                            .orElseThrow(() ->
+                                    new IllegalArgumentException(
+                                            "존재하지 않는 파일입니다. fileId="
+                                                    + fileRequest.getFileId()
+                                    ));
+
+            String content =
+                    fileContentService.extractText(
+                            profileFile.getFileUrl(),
+                            profileFile.getContentType()
+                    );
+
+            result.append("\n===== ")
+                    .append(profileFile.getOriginalName())
+                    .append(" =====\n")
+                    .append(content)
+                    .append("\n");
+        }
+
+        return result.toString();
+    }
+    @Transactional
+    public ProfileFileResponse uploadProfileFile(
+            Long memberId,
+            MultipartFile file
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        }
+
+        String originalName = file.getOriginalFilename();
+
+        if (originalName == null || originalName.isBlank()) {
+            throw new IllegalArgumentException("파일명이 없습니다.");
+        }
+
+        String fileUrl;
+
+        try {
+            fileUrl = fileStorageService.saveProfileFile(file);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "프로필 파일 저장에 실패했습니다.",
+                    e
+            );
+        }
+
+        ProfileFile profileFile = ProfileFile.builder()
+                .member(member)
+                .fileUrl(fileUrl)
+                .originalName(originalName)
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .build();
+
+        ProfileFile savedFile =
+                profileFileRepository.save(profileFile);
+
+        return new ProfileFileResponse(savedFile);
+    }
+
+}

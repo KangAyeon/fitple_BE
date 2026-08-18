@@ -7,6 +7,7 @@ import com.fitple.fitple.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.fitple.fitple.dto.response.IdCheckResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -41,12 +42,29 @@ public class AuthService {
                 .build();
 
         // DB SAVING
-        memberRepository.save(member);
+        Member savedMember = memberRepository.save(member);
 
         // response : success
         return SignupResponse.builder()
                 .success(true)
+                .memberId(savedMember.getId())
                 .message("회원가입이 완료되었습니다.")
+                .build();
+    }
+    public IdCheckResponse checkLoginId(String loginId) {
+
+        boolean exists = memberRepository.existsByLoginId(loginId);
+
+        if (exists) {
+            return IdCheckResponse.builder()
+                    .available(false)
+                    .message("이미 사용 중인 아이디입니다.")
+                    .build();
+        }
+
+        return IdCheckResponse.builder()
+                .available(true)
+                .message("사용 가능한 아이디입니다.")
                 .build();
     }
 }
