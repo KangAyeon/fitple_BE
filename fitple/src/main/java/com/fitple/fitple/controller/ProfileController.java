@@ -11,9 +11,15 @@ import com.fitple.fitple.dto.response.ProfileResponse;
 import com.fitple.fitple.service.ProfileService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import com.fitple.fitple.dto.response.ProfileFileResponse;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -77,5 +83,17 @@ public class ProfileController {
                 );
 
         return ResponseEntity.ok(response);
+    }
+    @PostMapping(
+            value = "/files",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ProfileFileResponse> uploadProfileFile(
+            @RequestParam Long memberId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(
+                profileService.uploadProfileFile(memberId, file)
+        );
     }
 }

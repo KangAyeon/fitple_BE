@@ -1,6 +1,8 @@
 package com.fitple.fitple.service;
 
 import com.fitple.fitple.domain.Member;
+import com.fitple.fitple.domain.ProfileFile;
+import com.fitple.fitple.dto.response.ProfileFileResponse;
 import com.fitple.fitple.repository.ChatFileRepository;
 import com.fitple.fitple.repository.MemberRepository;
 import com.fitple.fitple.dto.request.ProfileGenerateRequest;
@@ -9,12 +11,18 @@ import com.fitple.fitple.dto.request.ProfileUpdateRequest;
 import com.fitple.fitple.dto.response.MessageResponse;
 import com.fitple.fitple.dto.response.ProfileDetailResponse;
 import com.fitple.fitple.dto.response.ProfileResponse;
+import com.fitple.fitple.repository.ProfileFileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fitple.fitple.domain.ChatFile;
 
-import com.fitple.fitple.dto.request.FileRequest;
+import com.fitple.fitple.domain.ProfileFile;
+import com.fitple.fitple.repository.ProfileFileRepository;
 
+import com.fitple.fitple.dto.request.FileRequest;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -25,19 +33,25 @@ public class ProfileService {
     private final MemberRepository memberRepository;
 
 
-    private final ChatFileRepository chatFileRepository;
+//    private final ChatFileRepository chatFileRepository;
     private final FileContentService fileContentService;
+
+    private final ProfileFileRepository profileFileRepository;
+    private final FileStorageService fileStorageService;
+
 
 
     public ProfileService(
             OpenAiService openAiService,
             MemberRepository memberRepository,
-            ChatFileRepository chatFileRepository,
+            ProfileFileRepository profileFileRepository,
+            FileStorageService fileStorageService,
             FileContentService fileContentService
     ) {
         this.openAiService = openAiService;
         this.memberRepository = memberRepository;
-        this.chatFileRepository = chatFileRepository;
+        this.profileFileRepository = profileFileRepository;
+        this.fileStorageService = fileStorageService;
         this.fileContentService = fileContentService;
     }
 
@@ -179,8 +193,8 @@ public class ProfileService {
                 continue;
             }
 
-            ChatFile chatFile =
-                    chatFileRepository.findById(fileRequest.getFileId())
+            ProfileFile profileFile =
+                    profileFileRepository.findById(fileRequest.getFileId())
                             .orElseThrow(() ->
                                     new IllegalArgumentException(
                                             "존재하지 않는 파일입니다. fileId="
@@ -189,18 +203,61 @@ public class ProfileService {
 
             String content =
                     fileContentService.extractText(
-                            chatFile.getFileUrl(),
-                            chatFile.getContentType()
+                            profileFile.getFileUrl(),
+                            profileFile.getContentType()
                     );
 
             result.append("\n===== ")
-                    .append(chatFile.getOriginalFileName())
+                    .append(profileFile.getOriginalName())
                     .append(" =====\n")
                     .append(content)
                     .append("\n");
         }
 
         return result.toString();
+    }
+    @Transactional
+    public ProfileFileResponse uploadProfileFile(
+            Long memberId,
+            MultipartFile file
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+        }
+
+        String originalName = file.getOriginalFilename();
+
+        if (originalName == null || originalName.isBlank()) {
+            throw new IllegalArgumentException("파일명이 없습니다.");
+        }
+
+        String fileUrl;
+
+        try {
+            fileUrl = fileStorageService.saveProfileFile(file);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "프로필 파일 저장에 실패했습니다.",
+                    e
+            );
+        }
+
+        ProfileFile profileFile = ProfileFile.builder()
+                .member(member)
+                .fileUrl(fileUrl)
+                .originalName(originalName)
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .build();
+
+        ProfileFile savedFile =
+                profileFileRepository.save(profileFile);
+
+        return new ProfileFileResponse(savedFile);
     }
 
 }
