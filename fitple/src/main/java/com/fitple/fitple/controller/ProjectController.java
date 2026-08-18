@@ -6,6 +6,7 @@ import com.fitple.fitple.dto.request.ProjectUpdateRequest;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.dto.response.ProjectAiGenerateResponse;
 import com.fitple.fitple.dto.response.ProjectCreateResponse;
+import com.fitple.fitple.dto.response.AssignRoleResponse;
 import com.fitple.fitple.dto.response.ProjectMemberResponse;
 import com.fitple.fitple.dto.response.ProjectMyResponse;
 import com.fitple.fitple.dto.response.ProjectResponse;
@@ -102,5 +103,13 @@ public class ProjectController {
             @PathVariable Long projectId
     ) {
         return ResponseEntity.ok(projectService.getProjectMembers(projectId));
+    }
+
+    @Operation(summary = "AI 역할 배정", description = "프로젝트 팀원들의 프로필을 분석해 역할을 자동 배정합니다.")
+    @PostMapping("/{projectId}/assign-roles")
+    public ResponseEntity<List<AssignRoleResponse>> assignRoles(
+            @PathVariable Long projectId
+    ) {
+        return ResponseEntity.ok(projectService.assignRoles(projectId));
     }
 }

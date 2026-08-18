@@ -6,6 +6,7 @@ import com.fitple.fitple.domain.ProjectMember;
 import com.fitple.fitple.dto.request.ProjectAiGenerateRequest;
 import com.fitple.fitple.dto.request.ProjectCreateRequest;
 import com.fitple.fitple.dto.request.ProjectUpdateRequest;
+import com.fitple.fitple.dto.response.AssignRoleResponse;
 import com.fitple.fitple.dto.response.ProjectAiGenerateResponse;
 import com.fitple.fitple.dto.response.ProjectCreateResponse;
 import com.fitple.fitple.dto.response.ProjectMemberResponse;
@@ -18,6 +19,7 @@ import com.fitple.fitple.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -173,6 +175,42 @@ public class ProjectService {
         return memberships.stream()
                 .map(ProjectMemberResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 프로젝트 팀원들의 프로필을 분석해 AI가 역할을 배정한다.
+     * TODO: 실제 AI API 연동 필요. 지금은 팀원 순서대로 프로젝트의 roles를 나눠 배정하는 더미 로직.
+     */
+    public List<AssignRoleResponse> assignRoles(Long projectId) {
+        Project project = getProjectOrThrow(projectId);
+        List<ProjectMember> members = projectMemberRepository.findByProjectId(projectId);
+
+        List<String> roles = (project.getRoles() == null || project.getRoles().isBlank())
+                ? List.of()
+                : Arrays.asList(project.getRoles().split(","));
+
+        List<AssignRoleResponse> result = new java.util.ArrayList<>();
+
+        for (int i = 0; i < members.size(); i++) {
+            ProjectMember pm = members.get(i);
+
+            // TODO: 실제로는 각 멤버의 프로필/역량 정보를 AI에 넘겨서 배정받아야 함
+            String assignedRole = roles.isEmpty()
+                    ? "미정"
+                    : roles.get(i % roles.size());
+
+            pm.setRole(assignedRole);
+            projectMemberRepository.save(pm);
+
+            result.add(AssignRoleResponse.builder()
+                    .memberId(pm.getMember().getId())
+                    .name(pm.getMember().getName())
+                    .role(assignedRole)
+                    .reason("TODO: AI 분석 결과로 교체 예정 (지금은 순번 배정)")
+                    .build());
+        }
+
+        return result;
     }
 
     private Project getProjectOrThrow(Long projectId) {

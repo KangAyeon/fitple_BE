@@ -4,12 +4,15 @@ import com.fitple.fitple.dto.request.ApplicationAiGenerateRequest;
 import com.fitple.fitple.dto.request.ApplicationCreateRequest;
 import com.fitple.fitple.dto.response.ApplicationAiGenerateResponse;
 import com.fitple.fitple.dto.response.ApplicationCreateResponse;
+import com.fitple.fitple.dto.response.ApplicationResponse;
 import com.fitple.fitple.service.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,5 +36,36 @@ public class ApplicationController {
             @Parameter(description = "지원자(로그인 회원) ID") @RequestParam Long memberId
     ) {
         return ResponseEntity.ok(applicationService.createApplication(projectId, request, memberId));
+    }
+
+    @Operation(summary = "지원 목록 조회", description = "게시자 본인만 조회할 수 있습니다.")
+    @GetMapping("/api/projects/{projectId}/applications")
+    public ResponseEntity<List<ApplicationResponse>> getApplications(
+            @PathVariable Long projectId,
+            @Parameter(description = "요청자(게시자, 로그인 회원) ID") @RequestParam Long memberId
+    ) {
+        return ResponseEntity.ok(applicationService.getApplications(projectId, memberId));
+    }
+
+    @Operation(summary = "지원 수락", description = "게시자 본인만 가능합니다. 수락 시 팀원(ProjectMember)으로 전환됩니다.")
+    @PostMapping("/api/projects/{projectId}/applications/{applicationId}/accept")
+    public ResponseEntity<Void> acceptApplication(
+            @PathVariable Long projectId,
+            @PathVariable Long applicationId,
+            @Parameter(description = "요청자(게시자, 로그인 회원) ID") @RequestParam Long memberId
+    ) {
+        applicationService.acceptApplication(projectId, applicationId, memberId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "지원 거절", description = "게시자 본인만 가능합니다.")
+    @PostMapping("/api/projects/{projectId}/applications/{applicationId}/reject")
+    public ResponseEntity<Void> rejectApplication(
+            @PathVariable Long projectId,
+            @PathVariable Long applicationId,
+            @Parameter(description = "요청자(게시자, 로그인 회원) ID") @RequestParam Long memberId
+    ) {
+        applicationService.rejectApplication(projectId, applicationId, memberId);
+        return ResponseEntity.ok().build();
     }
 }
