@@ -34,6 +34,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final QrCodeService qrCodeService;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
 
@@ -137,10 +138,10 @@ public class ProjectService {
                 .build();
         projectMemberRepository.save(creatorMembership);
 
-        // TODO: 실제 QR/초대링크 생성 로직으로 교체 (별도 InviteCodeGenerator 등)
+        // 초대링크 생성 후, 그 링크를 QR 이미지로 실제 생성
         String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String inviteLink = "fitple.app/invite/" + inviteCode;
-        String qrCodeUrl = "https://fitple.app/qr/" + inviteCode + ".png";
+        String qrCodeUrl = qrCodeService.generateQrCode(inviteLink);
 
         return ProjectCreateResponse.builder()
                 .projectId(saved.getId())
