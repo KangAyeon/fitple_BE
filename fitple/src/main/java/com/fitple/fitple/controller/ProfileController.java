@@ -27,20 +27,10 @@ public class ProfileController {
 
     @PostMapping("/generate")
     public ResponseEntity<ProfileResponse> generateProfile(
-            @RequestBody ProfileGenerateRequest request,
-            HttpSession session
+            @RequestBody ProfileGenerateRequest request
     ) {
-        Long memberId = (Long) session.getAttribute("memberId");
-
-        if (memberId == null) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
-        }
-
         return ResponseEntity.ok(
-                profileService.generateProfile(
-                        memberId,
-                        request
-                )
+                profileService.generateProfile(request)
         );
     }
 

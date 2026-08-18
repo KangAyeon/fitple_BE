@@ -105,23 +105,25 @@ public class ChatController {
                 chatService.getPreviousMessages(roomId, size)
         );
     }
+
     @PostMapping(
             value = "/rooms/{projectId}/files",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<Void> uploadFile(
+    public ResponseEntity<ChatFileResponse> uploadFile(
             @PathVariable Long projectId,
             @RequestParam Long memberId,
             @RequestParam("file") MultipartFile file
     ) {
-        chatService.uploadFile(
-                projectId,
-                memberId,
-                file
+        return ResponseEntity.ok(
+                chatService.uploadFile(
+                        projectId,
+                        memberId,
+                        file
+                )
         );
-
-        return ResponseEntity.ok().build();
     }
+
 
     @PostMapping("/rooms/{projectId}/meeting-minutes")
     public ResponseEntity<MeetingMinuteResponse> createMeetingMinute(

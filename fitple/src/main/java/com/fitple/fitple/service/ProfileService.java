@@ -1,6 +1,7 @@
 package com.fitple.fitple.service;
 
 import com.fitple.fitple.domain.Member;
+import com.fitple.fitple.repository.ChatFileRepository;
 import com.fitple.fitple.repository.MemberRepository;
 import com.fitple.fitple.dto.request.ProfileGenerateRequest;
 import com.fitple.fitple.dto.request.ProfileRegenerateRequest;
@@ -10,6 +11,7 @@ import com.fitple.fitple.dto.response.ProfileDetailResponse;
 import com.fitple.fitple.dto.response.ProfileResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fitple.fitple.domain.ChatFile;
 
 import com.fitple.fitple.dto.request.FileRequest;
 
@@ -22,10 +24,23 @@ public class ProfileService {
     private final OpenAiService openAiService;
     private final MemberRepository memberRepository;
 
-    public ProfileService(OpenAiService openAiService, MemberRepository memberRepository) {
+
+    private final ChatFileRepository chatFileRepository;
+    private final FileContentService fileContentService;
+
+
+    public ProfileService(
+            OpenAiService openAiService,
+            MemberRepository memberRepository,
+            ChatFileRepository chatFileRepository,
+            FileContentService fileContentService
+    ) {
         this.openAiService = openAiService;
         this.memberRepository = memberRepository;
+        this.chatFileRepository = chatFileRepository;
+        this.fileContentService = fileContentService;
     }
+
 
     private static final String SYSTEM_PROMPT = """
         당신은 사용자의 입력 정보와 첨부파일 정보를 기반으로 프로필 소개글을 작성하는 AI 핏봇입니다.
@@ -43,30 +58,40 @@ public class ProfileService {
         """;
 
     @Transactional
-    public ProfileResponse generateProfile(
-            Long memberId,
-            ProfileGenerateRequest request
-    ) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("존재하지 않는 회원입니다.")
-                );
+    public ProfileResponse generateProfile(ProfileGenerateRequest request) {
+
+        String fileContents = extractUsedFileContents(
+                request.getUsedFiles()
+        );
 
         String userPrompt = String.format(
-                "사용자 작성 소개: %s\n참고 파일: %s\n편집 가능 여부: %s",
+                """
+                사용자 작성 소개:
+                %s
+    
+                첨부파일 내용:
+                %s
+    
+                편집 가능 여부:
+                %s
+    
+                위의 사용자 소개와 첨부파일 내용을 종합하여
+                사용자의 실제 경험과 역량이 잘 드러나는 프로필을 작성하세요.
+                """,
                 request.getProfileSummary(),
-                formatFiles(request.getUsedFiles()),
+                fileContents,
                 request.isEditable()
         );
 
         String aiResult =
-                openAiService.callGpt(SYSTEM_PROMPT, userPrompt);
-
-        // AI가 생성한 프로필을 DB에 저장
-        member.updateIntroduction(aiResult);
+                openAiService.callGpt(
+                        SYSTEM_PROMPT,
+                        userPrompt
+                );
 
         return new ProfileResponse(aiResult);
     }
+
 
     public ProfileResponse regenerateProfile(
             ProfileGenerateRequest request
@@ -137,4 +162,45 @@ public class ProfileService {
 
         return new MessageResponse("프로필이 수정되었습니다.");
     }
+
+    private String extractUsedFileContents(
+            List<FileRequest> files
+    ) {
+
+        if (files == null || files.isEmpty()) {
+            return "첨부파일 없음";
+        }
+
+        StringBuilder result = new StringBuilder();
+
+        for (FileRequest fileRequest : files) {
+
+            if (fileRequest.getFileId() == null) {
+                continue;
+            }
+
+            ChatFile chatFile =
+                    chatFileRepository.findById(fileRequest.getFileId())
+                            .orElseThrow(() ->
+                                    new IllegalArgumentException(
+                                            "존재하지 않는 파일입니다. fileId="
+                                                    + fileRequest.getFileId()
+                                    ));
+
+            String content =
+                    fileContentService.extractText(
+                            chatFile.getFileUrl(),
+                            chatFile.getContentType()
+                    );
+
+            result.append("\n===== ")
+                    .append(chatFile.getOriginalFileName())
+                    .append(" =====\n")
+                    .append(content)
+                    .append("\n");
+        }
+
+        return result.toString();
+    }
+
 }

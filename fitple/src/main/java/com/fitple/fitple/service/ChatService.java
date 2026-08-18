@@ -69,6 +69,8 @@ public class ChatService {
     private final AITaskService aiTaskService;
     private final AIRoadmapService aiRoadmapService;
 
+    private final FileStorageService fileStorageService;
+
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
 
@@ -189,8 +191,9 @@ public class ChatService {
                 .map(ChatMessageResponse::from)
                 .toList();
     }
+
     @Transactional
-    public void uploadFile(
+    public ChatFileResponse uploadFile(
             Long projectId,
             Long memberId,
             MultipartFile file
@@ -214,61 +217,42 @@ public class ChatService {
             throw new IllegalArgumentException("파일명이 없습니다.");
         }
 
+        String fileUrl;
+
         try {
-            Path uploadPath = Paths.get(
-                    System.getProperty("user.dir"),
-                    "uploads",
-                    "chat"
-            );
-
-            Files.createDirectories(uploadPath);
-
-            String extension = "";
-
-            int extensionIndex = originalFileName.lastIndexOf(".");
-
-            if (extensionIndex >= 0) {
-                extension = originalFileName.substring(extensionIndex);
-            }
-
-            String savedFileName =
-                    UUID.randomUUID() + extension;
-
-            Path targetPath =
-                    uploadPath.resolve(savedFileName);
-
-            file.transferTo(targetPath.toFile());
-
-            String fileUrl =
-                    "/uploads/chat/" + savedFileName;
-
-            ChatMessage message = ChatMessage.builder()
-                    .chatRoom(chatRoom)
-                    .member(member)
-                    .content("")
-                    .createdAt(LocalDateTime.now())
-                    .build();
-
-            ChatMessage savedMessage =
-                    chatMessageRepository.save(message);
-
-            ChatFile chatFile = ChatFile.builder()
-                    .chatMessage(savedMessage)
-                    .originalFileName(originalFileName)
-                    .fileUrl(fileUrl)
-                    .contentType(file.getContentType())
-                    .fileSize(file.getSize())
-                    .build();
-
-            chatFileRepository.save(chatFile);
-
+            fileUrl = fileStorageService.saveChatFile(file);
         } catch (IOException e) {
             throw new IllegalStateException(
                     "파일 저장에 실패했습니다.",
                     e
             );
         }
+
+        ChatMessage message = ChatMessage.builder()
+                .chatRoom(chatRoom)
+                .member(member)
+                .content("")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ChatMessage savedMessage =
+                chatMessageRepository.save(message);
+
+        ChatFile chatFile = ChatFile.builder()
+                .chatMessage(savedMessage)
+                .originalFileName(originalFileName)
+                .fileUrl(fileUrl)
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .build();
+
+        ChatFile savedChatFile =
+                chatFileRepository.save(chatFile);
+
+        return ChatFileResponse.from(savedChatFile);
     }
+
+
     @Transactional
     public MeetingMinuteResponse createMeetingMinute(
             Long projectId,

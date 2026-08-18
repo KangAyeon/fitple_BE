@@ -66,4 +66,12 @@ public class Member {
             this.introductions.add(newIntro);
         }
     }
+    @OneToMany(
+            mappedBy = "member",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<ProfileFile> profileFiles = new ArrayList<>();
+
 }
