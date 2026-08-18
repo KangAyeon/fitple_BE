@@ -37,6 +37,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+import com.fitple.fitple.domain.MeetingMinute;
+import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
+import com.fitple.fitple.dto.response.MeetingMinuteResponse;
+import com.fitple.fitple.repository.MeetingMinuteRepository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -54,6 +59,8 @@ public class ChatService {
     private final ProjectRepository projectRepository;
 
     private final ChatFileRepository chatFileRepository;
+
+    private final MeetingMinuteRepository meetingMinuteRepository;
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -201,7 +208,11 @@ public class ChatService {
         }
 
         try {
-            Path uploadPath = Paths.get(uploadDir, "chat");
+            Path uploadPath = Paths.get(
+                    System.getProperty("user.dir"),
+                    "uploads",
+                    "chat"
+            );
 
             Files.createDirectories(uploadPath);
 
@@ -250,6 +261,70 @@ public class ChatService {
                     e
             );
         }
+    }
+    @Transactional
+    public MeetingMinuteResponse createMeetingMinute(
+            Long projectId,
+            MeetingMinuteCreateRequest request
+    ) {
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 프로젝트입니다."
+                        ));
+
+        MeetingMinute meetingMinute = MeetingMinute.builder()
+                .project(project)
+                .title(request.getTitle())
+                .content(request.getContent())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        MeetingMinute savedMeetingMinute =
+                meetingMinuteRepository.save(meetingMinute);
+
+        return MeetingMinuteResponse.from(savedMeetingMinute);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MeetingMinuteResponse> getMeetingMinutes(
+            Long projectId
+    ) {
+
+        if (!projectRepository.existsById(projectId)) {
+            throw new IllegalArgumentException(
+                    "프로젝트가 있지 아니합니다."
+            );
+        }
+
+        return meetingMinuteRepository
+                .findByProjectIdOrderByCreatedAtDesc(projectId)
+                .stream()
+                .map(MeetingMinuteResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public MeetingMinuteResponse getMeetingMinute(
+            Long projectId,
+            Long meetingMinuteId
+    ) {
+
+        MeetingMinute meetingMinute =
+                meetingMinuteRepository.findById(meetingMinuteId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "존재하지 않는 회의록입니다."
+                                ));
+
+        if (!meetingMinute.getProject().getId().equals(projectId)) {
+            throw new IllegalArgumentException(
+                    "현재 프로젝트의 회의록이 아닙니다."
+            );
+        }
+
+        return MeetingMinuteResponse.from(meetingMinute);
     }
 
 }

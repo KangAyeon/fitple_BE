@@ -17,6 +17,9 @@ import com.fitple.fitple.dto.response.ChatTranslationResponse;
 import com.fitple.fitple.service.ChatTranslationService;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
+import com.fitple.fitple.dto.response.MeetingMinuteResponse;
+
 import java.util.List;
 
 @RestController
@@ -118,5 +121,40 @@ public class ChatController {
         );
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/rooms/{projectId}/meeting-minutes")
+    public ResponseEntity<MeetingMinuteResponse> createMeetingMinute(
+            @PathVariable Long projectId,
+            @Valid @RequestBody MeetingMinuteCreateRequest request
+    ) {
+        return ResponseEntity.ok(
+                chatService.createMeetingMinute(
+                        projectId,
+                        request
+                )
+        );
+    }
+
+    @GetMapping("/rooms/{projectId}/meeting-minutes")
+    public ResponseEntity<List<MeetingMinuteResponse>> getMeetingMinutes(
+            @PathVariable Long projectId
+    ) {
+        return ResponseEntity.ok(
+                chatService.getMeetingMinutes(projectId)
+        );
+    }
+
+    @GetMapping("/rooms/{projectId}/meeting-minutes/{meetingMinuteId}")
+    public ResponseEntity<MeetingMinuteResponse> getMeetingMinute(
+            @PathVariable Long projectId,
+            @PathVariable Long meetingMinuteId
+    ) {
+        return ResponseEntity.ok(
+                chatService.getMeetingMinute(
+                        projectId,
+                        meetingMinuteId
+                )
+        );
     }
 }
