@@ -90,8 +90,8 @@ public class ChatService {
                                     return ChatProjectListResponse.ProjectResponse
                                             .builder()
                                             .projectId(project.getId())
-                                            .projectIconUrl(project.getIconUrl())
-                                            .title(project.getName())
+                                            .projectIconUrl(project.getImageUrl())
+                                            .title(project.getTitle())
                                             .build();
                                 })
                                 .toList()

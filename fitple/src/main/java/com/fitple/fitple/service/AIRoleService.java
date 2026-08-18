@@ -221,8 +221,8 @@ public class AIRoleService {
 
         return AIRoleAssignRequest.builder()
                 .projectId(project.getId())
-                .projectName(project.getName())
-                .projectDescription(project.getDescription())
+                .projectName(project.getTitle())
+                .projectDescription(project.getIntroText())
                 .members(members)
                 .build();
     }

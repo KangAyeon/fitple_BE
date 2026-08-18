@@ -80,12 +80,12 @@ public class ProjectScrapService {
 
                                     return ScrapListResponse.ProjectResponse.builder()
                                             .projectId(project.getId())
-                                            .projectIconUrl(project.getIconUrl())
-                                            .title(project.getName())
+                                            .projectIconUrl(project.getImageUrl())
+                                            .title(project.getTitle())
                                             .recruitRoles(recruitRoles)
-                                            .dDay(calculateDDay(project.getRecruitDeadline()))
+                                            .dDay(calculateDDay(project.getDeadline()))
                                             .recruitStatus(
-                                                    project.isRecruiting()
+                                                    project.getStatus() == Project.ProjectStatus.RECRUITING
                                                             ? "모집중"
                                                             : "모집마감"
                                             )
@@ -115,7 +115,7 @@ public class ProjectScrapService {
             );
         }
     }
-    private String calculateDDay(LocalDateTime deadline) {
+    private String calculateDDay(LocalDate deadline) {
 
         if (deadline == null) {
             return null;
@@ -123,7 +123,7 @@ public class ProjectScrapService {
 
         long days = ChronoUnit.DAYS.between(
                 LocalDate.now(),
-                deadline.toLocalDate()
+                deadline
         );
 
         if (days == 0) {

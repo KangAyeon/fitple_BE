@@ -22,7 +22,7 @@ public class TaskResponse {
         return TaskResponse.builder()
                 .taskId(task.getId())
                 .projectId(task.getProject().getId())
-                .projectName(task.getProject().getName())
+                .projectName(task.getProject().getTitle())
                 .title(task.getTitle())
                 .assigneeId(task.getAssignee().getId())
                 .dueDate(task.getDueDate())

@@ -211,8 +211,8 @@ public class AITaskService {
               ]
             }
             """.formatted(
-                project.getName(),
-                project.getDescription(),
+                project.getTitle(),
+                project.getIntroText(),
                 today,
                 membersJson,
                 chatHistory,
