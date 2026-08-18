@@ -1,7 +1,6 @@
 package com.fitple.fitple.controller;
 
-import com.fitple.fitple.dto.response.ChatProjectListResponse;
-import com.fitple.fitple.dto.response.ChatRoomResponse;
+import com.fitple.fitple.dto.response.*;
 import com.fitple.fitple.service.ChatService;
 import com.fitple.fitple.service.ChatTranslationService;
 import lombok.RequiredArgsConstructor;
@@ -9,18 +8,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fitple.fitple.dto.request.ChatMessageRequest;
-import com.fitple.fitple.dto.response.ChatMessageResponse;
 import jakarta.validation.Valid;
 
 import com.fitple.fitple.dto.request.ChatTranslationRequest;
-import com.fitple.fitple.dto.response.ChatTranslationResponse;
 import com.fitple.fitple.service.ChatTranslationService;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
-import com.fitple.fitple.dto.response.MeetingMinuteResponse;
+import com.fitple.fitple.dto.response.ChatFileResponse;
 
-import com.fitple.fitple.dto.response.TaskResponse;
+import com.fitple.fitple.dto.request.ScheduleUpdateRequests;
+import com.fitple.fitple.dto.response.ScheduleUpdateResponse;
 
 import java.util.List;
 
@@ -165,6 +163,54 @@ public class ChatController {
     ) {
         return ResponseEntity.ok(
                 chatService.generateTodayTasks(roomId)
+        );
+    }
+    @GetMapping("/rooms/{projectId}/members")
+    public ResponseEntity<List<TeamMemberResponse>> getTeamMembers(
+            @PathVariable Long projectId
+    ) {
+        return ResponseEntity.ok(
+                chatService.getTeamMembers(projectId)
+        );
+    }
+    @GetMapping("/rooms/{roomId}/files")
+    public ResponseEntity<List<ChatFileResponse>> getChatFiles(
+            @PathVariable Long roomId
+    ) {
+        return ResponseEntity.ok(
+                chatService.getChatFiles(roomId)
+        );
+    }
+
+    @PostMapping("/rooms/{roomId}/roadmap/ai-generate")
+    public ResponseEntity<List<RoadmapStageResponse>> generateRoadmap(
+            @PathVariable Long roomId
+    ) {
+        return ResponseEntity.ok(
+                chatService.generateRoadmap(roomId)
+        );
+    }
+
+    @GetMapping("/rooms/{projectId}/roadmap")
+    public ResponseEntity<RoadmapResponse> getRoadmap(
+            @PathVariable Long projectId
+    ) {
+        return ResponseEntity.ok(
+                chatService.getRoadmap(projectId)
+        );
+    }
+
+    @PostMapping("/rooms/{roomId}/schedule/ai-update")
+    public ResponseEntity<List<ScheduleUpdateResponse>> updateSchedule(
+            @PathVariable Long roomId,
+            @RequestBody ScheduleUpdateRequests request
+    ) {
+
+        return ResponseEntity.ok(
+                chatService.updateSchedule(
+                        roomId,
+                        request.getUpdates()
+                )
         );
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fitple.fitple.dto.request.TaskStatusUpdateRequest;
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -110,5 +111,112 @@ public class TaskService {
 
         return TaskResponse.from(task);
     }
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getProjectTodayTasks(
+            Long projectId,
+            String status
+    ) {
 
+        List<Task> tasks;
+
+        if (status == null || status.isBlank() || status.equals("ALL")) {
+            tasks = taskRepository.findByProjectIdAndDueDate(
+                    projectId,
+                    LocalDate.now()
+            );
+        } else {
+            tasks = taskRepository.findByProjectIdAndDueDateAndStatus(
+                    projectId,
+                    LocalDate.now(),
+                    status
+            );
+        }
+
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+    @Transactional
+    public TaskResponse updateProjectTaskStatus(
+            Long projectId,
+            Long taskId,
+            String status
+    ) {
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 과제입니다."
+                        ));
+
+        if (!task.getProject().getId().equals(projectId)) {
+            throw new IllegalArgumentException(
+                    "해당 프로젝트의 과제가 아닙니다."
+            );
+        }
+
+        task.setStatus(status);
+
+        return TaskResponse.from(task);
+    }
+    @Transactional(readOnly = true)
+    public TaskResponse getTask(Long taskId) {
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 과제입니다."
+                        ));
+
+        return TaskResponse.from(task);
+    }
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getProjectTasks(
+            Long projectId,
+            Long memberId,
+            String status
+    ) {
+
+        List<Task> tasks;
+
+        if (status == null || status.equals("ALL")) {
+            tasks = taskRepository.findByProjectIdAndAssigneeId(
+                    projectId,
+                    memberId
+            );
+        } else {
+            tasks = taskRepository.findByProjectIdAndAssigneeIdAndStatus(
+                    projectId,
+                    memberId,
+                    status
+            );
+        }
+
+        return tasks.stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+    @Transactional
+    public TaskResponse completeProjectTask(
+            Long projectId,
+            Long taskId,
+            String status
+    ) {
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 과제입니다."
+                        ));
+
+        if (!task.getProject().getId().equals(projectId)) {
+            throw new IllegalArgumentException(
+                    "해당 프로젝트의 과제가 아닙니다."
+            );
+        }
+
+        task.setStatus(status);
+
+        return TaskResponse.from(task);
+    }
 }

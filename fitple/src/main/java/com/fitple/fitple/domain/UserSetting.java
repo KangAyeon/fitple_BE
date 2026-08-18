@@ -30,6 +30,10 @@ public class UserSetting {
     @Column(nullable = false)
     private boolean notificationEnabled;
 
+    // 채팅 번역 활성화 여부
+    @Column(nullable = false)
+    private boolean translationEnabled;
+
     public enum FontSize {
         SMALL,
         MEDIUM,

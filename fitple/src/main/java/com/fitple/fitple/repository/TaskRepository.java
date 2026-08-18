@@ -21,4 +21,20 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             Long projectId,
             LocalDate dueDate
     );
+    List<Task> findByProjectIdAndDueDateAndStatus(
+            Long projectId,
+            LocalDate dueDate,
+            String status
+    );
+    List<Task> findByProjectIdAndAssigneeId(
+            Long projectId,
+            Long memberId
+    );
+
+    List<Task> findByProjectIdAndAssigneeIdAndStatus(
+            Long projectId,
+            Long memberId,
+            String status
+    );
+
 }

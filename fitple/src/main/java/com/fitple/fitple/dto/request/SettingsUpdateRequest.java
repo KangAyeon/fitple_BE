@@ -9,4 +9,5 @@ public class SettingsUpdateRequest {
 
     private String fontSize;
     private Boolean notificationEnabled;
+    private Boolean translationEnabled;
 }

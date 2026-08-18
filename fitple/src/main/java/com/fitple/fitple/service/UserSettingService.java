@@ -33,6 +33,7 @@ public class UserSettingService {
                                                 .member(member)
                                                 .fontSize(UserSetting.FontSize.MEDIUM)
                                                 .notificationEnabled(true)
+                                                .translationEnabled(true)
                                                 .build()
                                 )
                         );
@@ -59,6 +60,7 @@ public class UserSettingService {
                                                 .member(member)
                                                 .fontSize(UserSetting.FontSize.MEDIUM)
                                                 .notificationEnabled(true)
+                                                .translationEnabled(true)
                                                 .build()
                                 )
                         );
@@ -80,6 +82,12 @@ public class UserSettingService {
         if (request.getNotificationEnabled() != null) {
             setting.setNotificationEnabled(
                     request.getNotificationEnabled()
+            );
+        }
+
+        if (request.getTranslationEnabled() != null) {
+            setting.setTranslationEnabled(
+                    request.getTranslationEnabled()
             );
         }
 

@@ -1,12 +1,11 @@
 package com.fitple.fitple.dto.response;
 
 import com.fitple.fitple.domain.ChatFile;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 @Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatFileResponse {
 
     private Long fileId;
@@ -14,14 +13,18 @@ public class ChatFileResponse {
     private String fileUrl;
     private String contentType;
     private Long fileSize;
+    private Long memberId;
+    private String memberName;
 
-    public static ChatFileResponse from(ChatFile file) {
+    public static ChatFileResponse from(ChatFile chatFile) {
         return ChatFileResponse.builder()
-                .fileId(file.getId())
-                .originalFileName(file.getOriginalFileName())
-                .fileUrl(file.getFileUrl())
-                .contentType(file.getContentType())
-                .fileSize(file.getFileSize())
+                .fileId(chatFile.getId())
+                .originalFileName(chatFile.getOriginalFileName())
+                .fileUrl(chatFile.getFileUrl())
+                .contentType(chatFile.getContentType())
+                .fileSize(chatFile.getFileSize())
+                .memberId(chatFile.getChatMessage().getMember().getId())
+                .memberName(chatFile.getChatMessage().getMember().getName())
                 .build();
     }
 }

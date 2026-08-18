@@ -1,20 +1,15 @@
 package com.fitple.fitple.service;
 
-import com.fitple.fitple.domain.Project;
-import com.fitple.fitple.dto.response.ChatProjectListResponse;
+import com.fitple.fitple.domain.*;
+import com.fitple.fitple.dto.request.ScheduleUpdateRequest;
+import com.fitple.fitple.dto.response.*;
 import com.fitple.fitple.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fitple.fitple.domain.ChatRoom;
-import com.fitple.fitple.dto.response.ChatRoomResponse;
-
-import com.fitple.fitple.domain.ChatMessage;
-import com.fitple.fitple.domain.ChatRoom;
-import com.fitple.fitple.domain.Member;
 import com.fitple.fitple.dto.request.ChatMessageRequest;
-import com.fitple.fitple.dto.response.ChatMessageResponse;
 import com.fitple.fitple.repository.ChatRoomRepository;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.repository.ProjectRepository;
@@ -25,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import java.util.Comparator;
 import java.util.List;
 
-import com.fitple.fitple.domain.ChatFile;
 import com.fitple.fitple.repository.ChatFileRepository;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,14 +31,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-import com.fitple.fitple.domain.MeetingMinute;
 import com.fitple.fitple.dto.request.MeetingMinuteCreateRequest;
-import com.fitple.fitple.dto.response.MeetingMinuteResponse;
 import com.fitple.fitple.repository.MeetingMinuteRepository;
+
+
+import com.fitple.fitple.dto.response.ScheduleUpdateResponse;
+import com.fitple.fitple.service.AIRoadmapService;
 
 //import com.fitple.fitple.domain.Task;
 //import com.fitple.fitple.domain.TaskStatus;
-import com.fitple.fitple.dto.response.TaskResponse;
 //import java.time.LocalDate;
 
 //import com.fitple.fitple.domain.ProjectMember;
@@ -72,6 +67,7 @@ public class ChatService {
     private final TaskRepository taskRepository;
 
     private final AITaskService aiTaskService;
+    private final AIRoadmapService aiRoadmapService;
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -350,5 +346,53 @@ public class ChatService {
         Long projectId = chatRoom.getProject().getId();
 
         return aiTaskService.generateTodayTasks(projectId);
+    }
+    @Transactional(readOnly = true)
+    public List<TeamMemberResponse> getTeamMembers(Long projectId) {
+
+        List<ProjectMember> projectMembers =
+                projectMemberRepository.findByProjectId(projectId);
+
+        return projectMembers.stream()
+                .map(TeamMemberResponse::from)
+                .toList();
+    }
+    @Transactional(readOnly = true)
+    public List<ChatFileResponse> getChatFiles(Long roomId) {
+
+        if (!chatRoomRepository.existsById(roomId)) {
+            throw new IllegalArgumentException(
+                    "존재하지 않는 채팅방입니다."
+            );
+        }
+
+        return chatFileRepository
+                .findByChatMessageChatRoomIdOrderByIdDesc(roomId)
+                .stream()
+                .map(ChatFileResponse::from)
+                .toList();
+    }
+    @Transactional
+    public List<ScheduleUpdateResponse> updateSchedule(
+            Long roomId,
+            List<ScheduleUpdateRequest> updates
+    ) {
+
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 채팅방입니다."
+                        ));
+
+        return aiRoadmapService.updateSchedule(updates);
+    }
+    @Transactional
+    public List<RoadmapStageResponse> generateRoadmap(Long roomId) {
+        return aiRoadmapService.generateRoadmap(roomId);
+    }
+
+    @Transactional(readOnly = true)
+    public RoadmapResponse getRoadmap(Long projectId) {
+        return aiRoadmapService.getRoadmap(projectId);
     }
 }
