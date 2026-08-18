@@ -42,11 +42,12 @@ public class AuthService {
                 .build();
 
         // DB SAVING
-        memberRepository.save(member);
+        Member savedMember = memberRepository.save(member);
 
         // response : success
         return SignupResponse.builder()
                 .success(true)
+                .memberId(savedMember.getId())
                 .message("회원가입이 완료되었습니다.")
                 .build();
     }

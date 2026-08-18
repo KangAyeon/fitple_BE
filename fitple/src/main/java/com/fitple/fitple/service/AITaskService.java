@@ -132,6 +132,17 @@ public class AITaskService {
                     e
             );
         }
+        String chatMessagesText = chatMessages.stream()
+                .map(message ->
+                        String.format(
+                                "[%s] %s: %s",
+                                message.getCreatedAt(),
+                                message.getMember().getName(),
+                                message.getContent()
+                        )
+                )
+                .collect(Collectors.joining("\n"));
+
 
         String chatHistory = chatMessages.stream()
                 .map(message ->
