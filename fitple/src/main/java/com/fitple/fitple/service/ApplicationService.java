@@ -27,15 +27,26 @@ public class ApplicationService {
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final OpenAiClient openAiClient;
 
     /**
-     * 지원용 소개글을 AI가 다듬어준다. (텍스트만 입력, 파일 없음)
-     * TODO: 실제 AI API 연동 필요. 지금은 원본을 그대로 돌려주는 더미 상태.
+     * 지원용 소개글을 AI(Gemini)가 다듬어준다. (텍스트만 입력, 파일 없음)
      */
     public ApplicationAiGenerateResponse generateIntro(ApplicationAiGenerateRequest request) {
-        // TODO: AI 호출 로직으로 교체
+        String prompt = """
+                너는 대학생 프로젝트 지원서의 자기소개글을 다듬어주는 도우미야.
+                아래는 지원자가 직접 작성한 소개글 초안이야.
+
+                초안: %s
+
+                이 내용을 자연스럽고 설득력 있게 다듬어서, 다듬어진 소개글 텍스트만 응답해줘.
+                따옴표나 설명, 다른 문구 없이 순수 소개글 본문만 반환해.
+                """.formatted(request.getRawIntroText());
+
+        String response = openAiClient.generateText(prompt);
+
         return ApplicationAiGenerateResponse.builder()
-                .introText(request.getRawIntroText())
+                .introText(response.trim())
                 .build();
     }
 

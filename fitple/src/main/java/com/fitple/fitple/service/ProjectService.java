@@ -1,5 +1,7 @@
 package com.fitple.fitple.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitple.fitple.domain.Member;
 import com.fitple.fitple.domain.Project;
 import com.fitple.fitple.domain.ProjectMember;
@@ -19,6 +21,7 @@ import com.fitple.fitple.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -31,28 +34,74 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final OpenAiClient openAiClient;
+    private final ObjectMapper objectMapper;
 
     /**
      * 사용자가 직접 쓴 소개글(+파일이 있으면 파일)을 참고해서
-     * AI가 최종 소개글과 구조화된 정보를 생성한다.
-     *
-     * TODO: 실제 AI API(예: Claude API) 연동 필요.
-     *  - request.getRawIntroText() : 사용자가 직접 쓴 원본 소개글 (필수)
-     *  - request.getFile()         : 참고 파일 (선택, null일 수 있음)
-     *  - 파일이 있으면 파일 내용까지 함께 프롬프트에 포함해서 호출
-     *  - AI 응답은 JSON 구조로 받아서 아래 필드에 매핑
+     * AI(Gemini)가 최종 소개글과 구조화된 정보를 생성한다.
      */
     public ProjectAiGenerateResponse generateIntro(ProjectAiGenerateRequest request) {
-        // TODO: AI 호출 로직으로 교체
-        // 아래는 임시 더미 응답 (프론트/연동 테스트용)
-        return ProjectAiGenerateResponse.builder()
-                .introText(request.getRawIntroText()) // TODO: AI가 다듬은 텍스트로 교체
-                .recruitCount(null)
-                .roles(List.of())
-                .periodEnd(null)
-                .meetingSchedule(null)
-                .deadline(null)
-                .build();
+        String todayText = LocalDate.now().toString();
+
+        String prompt = """
+                너는 대학생 프로젝트 팀원 모집 게시글을 작성하는 도우미야.
+                오늘 날짜는 %s야. 날짜를 추론할 때 반드시 이 기준으로 판단해줘.
+                (예: "9월 30일까지"처럼 연도가 없는 표현은 오늘 날짜 기준 가장 가까운 미래의 9월 30일로 해석해줘.
+                이미 지난 날짜라면 내년으로 해석해줘.)
+
+                아래는 사용자가 직접 작성한 프로젝트 소개글 초안이야.
+
+                제목: %s
+                초안: %s
+
+                이 내용을 참고해서(첨부된 파일이 있다면 그 내용도 함께 참고해서),
+                다른 사람이 읽기 좋은 완성된 소개글과, 아래 정보를 구조화해서
+                **오직 JSON 형식으로만** 응답해줘. 다른 설명 문장은 붙이지 마.
+
+                {
+                  "introText": "완성된 소개글 (2~4문장)",
+                  "recruitCount": 모집 인원 (숫자, 알 수 없으면 null),
+                  "roles": ["모집 역할 목록"],
+                  "periodEnd": "진행 기간 종료일 (yyyy-MM-dd, 알 수 없으면 null)",
+                  "meetingSchedule": "회의 일정 (알 수 없으면 null)",
+                  "deadline": "모집 마감일 (yyyy-MM-dd, 알 수 없으면 null)"
+                }
+                """.formatted(todayText, request.getTitle(), request.getRawIntroText());
+
+        String rawResponse = (request.getFile() != null && !request.getFile().isEmpty())
+                ? openAiClient.generateTextWithFile(prompt, request.getFile())
+                : openAiClient.generateText(prompt);
+
+        try {
+            String json = openAiClient.extractJson(rawResponse);
+            JsonNode node = objectMapper.readTree(json);
+
+            List<String> roles = new java.util.ArrayList<>();
+            if (node.has("roles") && node.get("roles").isArray()) {
+                node.get("roles").forEach(r -> roles.add(r.asText()));
+            }
+
+            return ProjectAiGenerateResponse.builder()
+                    .introText(node.path("introText").isNull() ? null : node.path("introText").asText())
+                    .recruitCount(node.path("recruitCount").isNull() ? null : node.path("recruitCount").asInt())
+                    .roles(roles)
+                    .periodEnd(parseDateOrNull(node.path("periodEnd")))
+                    .meetingSchedule(node.path("meetingSchedule").isNull() ? null : node.path("meetingSchedule").asText())
+                    .deadline(parseDateOrNull(node.path("deadline")))
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("AI 응답 파싱에 실패했습니다: " + e.getMessage(), e);
+        }
+    }
+
+    private LocalDate parseDateOrNull(JsonNode node) {
+        if (node.isNull() || node.asText().isBlank()) return null;
+        try {
+            return LocalDate.parse(node.asText());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -178,39 +227,81 @@ public class ProjectService {
     }
 
     /**
-     * 프로젝트 팀원들의 프로필을 분석해 AI가 역할을 배정한다.
-     * TODO: 실제 AI API 연동 필요. 지금은 팀원 순서대로 프로젝트의 roles를 나눠 배정하는 더미 로직.
+     * 프로젝트 팀원들의 프로필을 분석해 AI(Gemini)가 역할을 배정한다.
+     * 주의: 현재 Member 엔티티에는 이름 외 프로필/역량 정보가 없어, 프로젝트 소개글과
+     * 모집 역할, 팀원 이름을 기준으로 배정한다. 추후 프로필/역량 필드가 추가되면 프롬프트에 반영 필요.
      */
     public List<AssignRoleResponse> assignRoles(Long projectId) {
         Project project = getProjectOrThrow(projectId);
         List<ProjectMember> members = projectMemberRepository.findByProjectId(projectId);
 
-        List<String> roles = (project.getRoles() == null || project.getRoles().isBlank())
-                ? List.of()
-                : Arrays.asList(project.getRoles().split(","));
-
-        List<AssignRoleResponse> result = new java.util.ArrayList<>();
-
-        for (int i = 0; i < members.size(); i++) {
-            ProjectMember pm = members.get(i);
-
-            // TODO: 실제로는 각 멤버의 프로필/역량 정보를 AI에 넘겨서 배정받아야 함
-            String assignedRole = roles.isEmpty()
-                    ? "미정"
-                    : roles.get(i % roles.size());
-
-            pm.setRole(assignedRole);
-            projectMemberRepository.save(pm);
-
-            result.add(AssignRoleResponse.builder()
-                    .memberId(pm.getMember().getId())
-                    .name(pm.getMember().getName())
-                    .role(assignedRole)
-                    .reason("TODO: AI 분석 결과로 교체 예정 (지금은 순번 배정)")
-                    .build());
+        if (members.isEmpty()) {
+            return List.of();
         }
 
-        return result;
+        String rolesText = (project.getRoles() == null || project.getRoles().isBlank())
+                ? "미정"
+                : project.getRoles();
+
+        String memberListText = members.stream()
+                .map(pm -> "- memberId: " + pm.getMember().getId() + ", 이름: " + pm.getMember().getName())
+                .collect(Collectors.joining("\n"));
+
+        String prompt = """
+                너는 대학생 프로젝트 팀 구성을 돕는 도우미야.
+                아래 프로젝트에 모인 팀원들에게 역할을 배정해줘.
+
+                프로젝트 제목: %s
+                프로젝트 소개: %s
+                모집 역할 목록: %s
+
+                팀원 목록:
+                %s
+
+                각 팀원에게 위 모집 역할 목록 중 하나를 배정하고, 그렇게 배정한 이유를 한 문장으로 작성해줘.
+                팀원 수가 역할 수보다 많으면 역할을 나눠 가질 수 있고, 특별한 근거가 없다면 골고루 배정해줘.
+                **오직 JSON 배열 형식으로만** 응답해줘. 다른 설명 문장은 붙이지 마.
+
+                [
+                  { "memberId": 숫자, "role": "배정된 역할", "reason": "배정 이유 한 문장" }
+                ]
+                """.formatted(project.getTitle(), project.getIntroText(), rolesText, memberListText);
+
+        String rawResponse = openAiClient.generateText(prompt);
+
+        try {
+            String json = openAiClient.extractJson(rawResponse);
+            JsonNode arrayNode = objectMapper.readTree(json);
+
+            List<AssignRoleResponse> result = new java.util.ArrayList<>();
+
+            for (JsonNode item : arrayNode) {
+                Long memberId = item.path("memberId").asLong();
+                String role = item.path("role").asText();
+                String reason = item.path("reason").asText();
+
+                ProjectMember pm = members.stream()
+                        .filter(m -> m.getMember().getId().equals(memberId))
+                        .findFirst()
+                        .orElse(null);
+
+                if (pm == null) continue;
+
+                pm.setRole(role);
+                projectMemberRepository.save(pm);
+
+                result.add(AssignRoleResponse.builder()
+                        .memberId(memberId)
+                        .name(pm.getMember().getName())
+                        .role(role)
+                        .reason(reason)
+                        .build());
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("AI 역할 배정 응답 파싱에 실패했습니다: " + e.getMessage(), e);
+        }
     }
 
     private Project getProjectOrThrow(Long projectId) {
