@@ -59,4 +59,17 @@ public class Project {
     public enum ProjectStatus {
         RECRUITING, IN_PROGRESS, CLOSED
     }
+
+    private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    private String iconUrl;
+
+    @Builder.Default
+    private boolean isRecruiting = true;
+
+    private LocalDate recruitDeadline;
+
 }

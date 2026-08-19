@@ -37,3 +37,4 @@ out/
 .vscode/
 fitple/uploads/
 application.properties
+env.properties
