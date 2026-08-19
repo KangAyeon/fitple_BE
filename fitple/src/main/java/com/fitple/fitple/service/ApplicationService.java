@@ -8,13 +8,16 @@ import com.fitple.fitple.dto.request.ApplicationAiGenerateRequest;
 import com.fitple.fitple.dto.request.ApplicationCreateRequest;
 import com.fitple.fitple.dto.response.ApplicationAiGenerateResponse;
 import com.fitple.fitple.dto.response.ApplicationCreateResponse;
+import com.fitple.fitple.dto.response.ApplicationMyResponse;
 import com.fitple.fitple.dto.response.ApplicationResponse;
+import com.fitple.fitple.exception.DuplicateApplicationException;
 import com.fitple.fitple.repository.ApplicationRepository;
 import com.fitple.fitple.repository.MemberRepository;
 import com.fitple.fitple.repository.ProjectMemberRepository;
 import com.fitple.fitple.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -51,14 +54,25 @@ public class ApplicationService {
     }
 
     /**
-     * 지원 제출.
+     * 지원 제출. 같은 회원이 같은 프로젝트에 PENDING 또는 ACCEPTED 상태로 이미 지원했다면 409로 거절한다.
      */
+    @Transactional
     public ApplicationCreateResponse createApplication(Long projectId, ApplicationCreateRequest request, Long memberId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다. projectId=" + projectId));
 
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. memberId=" + memberId));
+
+        boolean alreadyApplied = applicationRepository.existsByProjectIdAndMemberIdAndStatusIn(
+                projectId,
+                memberId,
+                List.of(Application.ApplicationStatus.PENDING, Application.ApplicationStatus.ACCEPTED)
+        );
+
+        if (alreadyApplied) {
+            throw new DuplicateApplicationException("이미 지원한 프로젝트입니다.");
+        }
 
         Application application = Application.builder()
                 .project(project)
@@ -87,8 +101,18 @@ public class ApplicationService {
     }
 
     /**
+     * 내가 지원한 목록 전체 조회 (지원 현황 화면용).
+     */
+    public List<ApplicationMyResponse> getMyApplications(Long memberId) {
+        return applicationRepository.findByMemberId(memberId).stream()
+                .map(ApplicationMyResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 지원 수락. 게시자 본인만 가능하며, 수락 시 ProjectMember로 전환된다.
      */
+    @Transactional
     public void acceptApplication(Long projectId, Long applicationId, Long requesterId) {
         Project project = getProjectOrThrow(projectId);
         validateOwner(project, requesterId);
@@ -115,6 +139,7 @@ public class ApplicationService {
     /**
      * 지원 거절. 게시자 본인만 가능하다.
      */
+    @Transactional
     public void rejectApplication(Long projectId, Long applicationId, Long requesterId) {
         Project project = getProjectOrThrow(projectId);
         validateOwner(project, requesterId);

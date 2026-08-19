@@ -4,9 +4,11 @@ import com.fitple.fitple.dto.request.ApplicationAiGenerateRequest;
 import com.fitple.fitple.dto.request.ApplicationCreateRequest;
 import com.fitple.fitple.dto.response.ApplicationAiGenerateResponse;
 import com.fitple.fitple.dto.response.ApplicationCreateResponse;
+import com.fitple.fitple.dto.response.ApplicationMyResponse;
 import com.fitple.fitple.dto.response.ApplicationResponse;
 import com.fitple.fitple.service.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +30,7 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.generateIntro(request));
     }
 
-    @Operation(summary = "지원 제출", description = "프로젝트에 지원합니다. 로그인이 필요합니다.")
+    @Operation(summary = "지원 제출", description = "프로젝트에 지원합니다. 로그인이 필요합니다. 같은 프로젝트에 이미 지원(PENDING/ACCEPTED)한 경우 409로 거절됩니다.")
     @PostMapping("/api/projects/{projectId}/applications")
     public ResponseEntity<ApplicationCreateResponse> createApplication(
             @PathVariable Long projectId,
@@ -37,6 +39,15 @@ public class ApplicationController {
     ) {
         Long memberId = getMemberIdOrThrow(session);
         return ResponseEntity.ok(applicationService.createApplication(projectId, request, memberId));
+    }
+
+    @Operation(summary = "내 지원 목록 조회", description = "내가 지원한 전체 목록을 조회합니다. (지원 현황 화면용) 로그인이 필요합니다.")
+    @GetMapping("/api/applications/my")
+    public ResponseEntity<List<ApplicationMyResponse>> getMyApplications(
+            HttpSession session
+    ) {
+        Long memberId = getMemberIdOrThrow(session);
+        return ResponseEntity.ok(applicationService.getMyApplications(memberId));
     }
 
     @Operation(summary = "지원 목록 조회", description = "게시자 본인만 조회할 수 있습니다. 로그인이 필요합니다.")
