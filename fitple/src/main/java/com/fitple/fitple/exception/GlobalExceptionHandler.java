@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 서비스 계층에서 던지는 예외를 아래 규칙으로 매핑한다.
  *  - IllegalArgumentException : 존재하지 않는 리소스 조회 -> 404
  *  - IllegalStateException    : 본인 소유가 아닌 리소스 수정/삭제/처리 시도 -> 403
+ *  - DuplicateApplicationException : 이미 지원한 프로젝트에 중복 지원 시도 -> 409
  *  - MethodArgumentNotValidException (@Valid 검증 실패) -> 400
  *  - DataIntegrityViolationException (DB 제약조건 위반: 길이 초과, unique 중복 등) -> 400
  *  - 그 외 모든 예외 -> 500
@@ -39,6 +40,16 @@ public class GlobalExceptionHandler {
                 .message(e.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(DuplicateApplicationException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateApplication(DuplicateApplicationException e) {
+        ErrorResponse body = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
