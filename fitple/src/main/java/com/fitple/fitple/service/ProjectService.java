@@ -37,8 +37,11 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final QrCodeService qrCodeService;
-    private final OpenAiClient openAiClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
+
+    @org.springframework.beans.factory.annotation.Value("${turnelKagamine}")
+    private String baseUrl;
 
     /**
      * 사용자가 직접 쓴 소개글(+파일이 있으면 파일)을 참고해서
@@ -73,11 +76,11 @@ public class ProjectService {
                 """.formatted(todayText, request.getTitle(), request.getRawIntroText());
 
         String rawResponse = (request.getFile() != null && !request.getFile().isEmpty())
-                ? openAiClient.generateTextWithFile(prompt, request.getFile())
-                : openAiClient.generateText(prompt);
+                ? geminiClient.generateTextWithFile(prompt, request.getFile())
+                : geminiClient.generateText(prompt);
 
         try {
-            String json = openAiClient.extractJson(rawResponse);
+            String json = geminiClient.extractJson(rawResponse);
             JsonNode node = objectMapper.readTree(json);
 
             List<String> roles = new java.util.ArrayList<>();
@@ -119,6 +122,9 @@ public class ProjectService {
                 ? null
                 : String.join(",", request.getRoles());
 
+        // 초대 코드는 저장 전에 미리 생성해서 Project 엔티티에 같이 저장한다.
+        String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         Project project = Project.builder()
                 .title(request.getTitle())
                 .introText(request.getIntroText())
@@ -128,6 +134,7 @@ public class ProjectService {
                 .meetingSchedule(request.getMeetingSchedule())
                 .deadline(request.getDeadline())
                 .imageUrl(request.getImageUrl())
+                .inviteCode(inviteCode)
                 .member(member)
                 .build();
 
@@ -147,9 +154,8 @@ public class ProjectService {
                 .build();
         chatRoomRepository.save(chatRoom);
 
-        // 초대링크 생성 후, 그 링크를 QR 이미지로 실제 생성
-        String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String inviteLink = "fitple.app/invite/" + inviteCode;
+        // 실제 접속 가능한 초대 링크(해당 프로젝트로 이동) 생성 후 QR 이미지로 변환
+        String inviteLink = baseUrl + "/api/projects/invite/" + inviteCode;
         String qrCodeUrl = qrCodeService.generateQrCode(inviteLink);
 
         return ProjectCreateResponse.builder()
@@ -195,6 +201,15 @@ public class ProjectService {
      */
     public ProjectResponse getProject(Long projectId) {
         Project project = getProjectOrThrow(projectId);
+        return ProjectResponse.from(project);
+    }
+
+    /**
+     * 초대 코드(QR/링크)로 프로젝트 조회.
+     */
+    public ProjectResponse getProjectByInviteCode(String inviteCode) {
+        Project project = projectRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대 코드입니다."));
         return ProjectResponse.from(project);
     }
 
@@ -278,10 +293,10 @@ public class ProjectService {
                 ]
                 """.formatted(project.getTitle(), project.getIntroText(), rolesText, memberListText);
 
-        String rawResponse = openAiClient.generateText(prompt);
+        String rawResponse = geminiClient.generateText(prompt);
 
         try {
-            String json = openAiClient.extractJson(rawResponse);
+            String json = geminiClient.extractJson(rawResponse);
             JsonNode arrayNode = objectMapper.readTree(json);
 
             List<AssignRoleResponse> result = new java.util.ArrayList<>();

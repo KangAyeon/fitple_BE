@@ -39,6 +39,10 @@ public class Project {
 
     private String imageUrl;
 
+    // 초대 QR/링크에 사용되는 고유 코드. 프로젝트 생성 시 자동 생성되어 저장된다.
+    @Column(unique = true, length = 20)
+    private String inviteCode;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
