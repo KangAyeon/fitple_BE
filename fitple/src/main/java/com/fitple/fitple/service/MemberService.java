@@ -73,22 +73,22 @@ public class MemberService {
 
     }
 
-    public SigninResponse signin(SigninRequest request, HttpSession session) {
-
-        Member member = memberRepository.findByLoginId(request.getLoginId())
-                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다."));
-
-        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
-            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
-        }
-
-        session.setAttribute("memberId", member.getId());
-
-        return SigninResponse.builder()
-                .success(true)
-                .message("로그인에 성공했습니다.")
-                .build();
-    }
+//    public SigninResponse signin(SigninRequest request, HttpSession session) {
+//
+//        Member member = memberRepository.findByLoginId(request.getLoginId())
+//                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다."));
+//
+//        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
+//            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
+//        }
+//
+//        session.setAttribute("memberId", member.getId());
+//
+//        return SigninResponse.builder()
+//                .success(true)
+//                .message("로그인에 성공했습니다.")
+//                .build();
+//    }
 
     public SigninResponse signin(SigninRequest request) {
 
@@ -104,6 +104,7 @@ public class MemberService {
         // LOGIN success
         return SigninResponse.builder()
                 .success(true)
+                .memberId(member.getId())
                 .message("로그인에 성공했습니다.")
                 .build();
     }
