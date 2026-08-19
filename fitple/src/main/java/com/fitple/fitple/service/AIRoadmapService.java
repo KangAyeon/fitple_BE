@@ -179,8 +179,8 @@ public class AIRoadmapService {
 
                 Markdown 코드 블록이나 설명 문장을 절대 작성하지 마라.
                 """.formatted(
-                project.getName(),
-                project.getDescription(),
+                project.getTitle(),
+                project.getIntroText(),
                 today,
                 membersJson,
                 chatHistory

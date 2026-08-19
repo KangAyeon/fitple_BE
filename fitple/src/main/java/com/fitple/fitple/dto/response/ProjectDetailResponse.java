@@ -10,24 +10,24 @@ import java.util.List;
 public class ProjectDetailResponse {
 
     private final Long id;
-    private final String name;
-    private final String iconUrl;
-    private final boolean recruiting;
+    private final String title;
+    private final String imageUrl;
+    private final String status;
     private final LocalDateTime createdAt;
     private final List<ProjectMemberResponse> members;
 
     private ProjectDetailResponse(
             Long id,
-            String name,
-            String iconUrl,
-            boolean recruiting,
+            String title,
+            String imageUrl,
+            String status,
             LocalDateTime createdAt,
             List<ProjectMemberResponse> members
     ) {
         this.id = id;
-        this.name = name;
-        this.iconUrl = iconUrl;
-        this.recruiting = recruiting;
+        this.title = title;
+        this.imageUrl = imageUrl;
+        this.status = status;
         this.createdAt = createdAt;
         this.members = members;
     }
@@ -38,9 +38,9 @@ public class ProjectDetailResponse {
     ) {
         return new ProjectDetailResponse(
                 project.getId(),
-                project.getName(),
-                project.getIconUrl(),
-                project.isRecruiting(),
+                project.getTitle(),
+                project.getImageUrl(),
+                project.getStatus().name(),
                 project.getCreatedAt(),
                 members
         );

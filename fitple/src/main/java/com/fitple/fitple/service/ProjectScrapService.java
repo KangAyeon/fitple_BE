@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fitple.fitple.repository.ProjectRecruitRoleRepository;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -23,8 +22,6 @@ public class ProjectScrapService {
     private final MemberRepository memberRepository;
     private final ProjectRepository projectRepository;
     private final ProjectRecruitRoleRepository projectRecruitRoleRepository;
-
-
 
     @Transactional
     public void addScrap(Long memberId, Long projectId) {
@@ -82,12 +79,12 @@ public class ProjectScrapService {
 
                                     return ScrapListResponse.ProjectResponse.builder()
                                             .projectId(project.getId())
-                                            .projectIconUrl(project.getIconUrl())
-                                            .title(project.getName())
+                                            .projectIconUrl(project.getImageUrl())
+                                            .title(project.getTitle())
                                             .recruitRoles(recruitRoles)
-                                            .dDay(calculateDDay(project.getRecruitDeadline().atStartOfDay()))
+                                            .dDay(calculateDDay(project.getDeadline()))
                                             .recruitStatus(
-                                                    project.isRecruiting()
+                                                    project.getStatus() == Project.ProjectStatus.RECRUITING
                                                             ? "모집중"
                                                             : "모집마감"
                                             )
@@ -117,7 +114,7 @@ public class ProjectScrapService {
             );
         }
     }
-    private String calculateDDay(LocalDateTime deadline) {
+    private String calculateDDay(LocalDate deadline) {
 
         if (deadline == null) {
             return null;
@@ -125,7 +122,7 @@ public class ProjectScrapService {
 
         long days = ChronoUnit.DAYS.between(
                 LocalDate.now(),
-                deadline.toLocalDate()
+                deadline
         );
 
         if (days == 0) {

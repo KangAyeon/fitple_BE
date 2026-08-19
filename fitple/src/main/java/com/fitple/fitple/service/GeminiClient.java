@@ -28,7 +28,7 @@ public class GeminiClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${gemini.api.key}")
+    @Value("${gemini.api-key}")
     private String apiKey;
 
     private static final String MODEL = "gemini-2.5-flash";
