@@ -10,6 +10,6 @@ import lombok.Getter;
 public class SigninResponse {
 
     private boolean success;
-
+    private Long memberId;
     private String message;
 }

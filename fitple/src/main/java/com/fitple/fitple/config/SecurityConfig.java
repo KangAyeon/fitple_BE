@@ -1,5 +1,6 @@
 package com.fitple.fitple.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,7 +9,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 public class SecurityConfig implements WebMvcConfigurer {
@@ -44,9 +44,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "http://localhost:8080",
                         "http://localhost:8081",
                         "https://aspect-engineers-ban-physician.trycloudflare.com",
-                        "https://appropriations-server-seattle-order.trycloudflare.com/",
+                        "https://appropriations-server-seattle-order.trycloudflare.com",
                         turnelKagamine
-                        // 가변적인 이 부분도 프로퍼티에 넣을까 고민중>>넣음
                 )
                 .allowedMethods(
                         "GET",
@@ -56,6 +55,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "DELETE",
                         "OPTIONS"
                 )
-                .allowedHeaders("*");
+//                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }
