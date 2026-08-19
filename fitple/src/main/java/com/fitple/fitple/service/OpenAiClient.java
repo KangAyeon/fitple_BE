@@ -29,7 +29,7 @@ public class OpenAiClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${openai.api.key}")
+    @Value("${openai.api-key}")
     private String apiKey;
 
     // 이미지(비전) 입력까지 지원하는 모델. 필요하면 팀 컨벤션에 맞춰 변경 가능.

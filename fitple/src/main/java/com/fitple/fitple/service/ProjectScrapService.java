@@ -24,6 +24,8 @@ public class ProjectScrapService {
     private final ProjectRepository projectRepository;
     private final ProjectRecruitRoleRepository projectRecruitRoleRepository;
 
+
+
     @Transactional
     public void addScrap(Long memberId, Long projectId) {
 
@@ -83,7 +85,7 @@ public class ProjectScrapService {
                                             .projectIconUrl(project.getIconUrl())
                                             .title(project.getName())
                                             .recruitRoles(recruitRoles)
-                                            .dDay(calculateDDay(project.getRecruitDeadline()))
+                                            .dDay(calculateDDay(project.getRecruitDeadline().atStartOfDay()))
                                             .recruitStatus(
                                                     project.isRecruiting()
                                                             ? "모집중"
