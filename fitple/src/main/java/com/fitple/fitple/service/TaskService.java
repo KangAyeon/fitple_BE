@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fitple.fitple.dto.request.TaskStatusUpdateRequest;
 import java.util.List;
 import java.time.LocalDate;
+import com.fitple.fitple.dto.response.TodayTaskResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +61,25 @@ public class TaskService {
 
         return TaskResponse.from(task);
     }
+
+    /**
+     * 홈 화면용 "오늘의 과제" 조회.q
+     * 해당 회원의 전체 과제 중, 마감일(dueDate)이 오늘이거나 아직 지나지 않은 것만
+     * 필터링해서 마감 임박한 순서로 반환한다. (이미 마감 지난 과제는 제외)
+     */
+    @Transactional(readOnly = true)
+    public List<TodayTaskResponse> getTodayTasks(Long memberId) {
+
+        List<Task> tasks = taskRepository.findByAssigneeId(memberId);
+
+        return tasks.stream()
+                .filter(task -> task.getDueDate() != null
+                        && !task.getDueDate().isBefore(LocalDate.now())) // 오늘 포함, 이미 지난 건 제외
+                .sorted((a, b) -> a.getDueDate().compareTo(b.getDueDate())) // 마감 임박한 순
+                .map(TodayTaskResponse::from)
+                .toList();
+    }
+
     // 오늘의 과제(마이페이지-전체
     @Transactional(readOnly = true)
     public List<TaskResponse> getMyTasks(
