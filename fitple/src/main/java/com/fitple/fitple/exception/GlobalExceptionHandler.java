@@ -1,6 +1,7 @@
 package com.fitple.fitple.exception;
 
 import com.fitple.fitple.dto.response.ErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  *  - IllegalArgumentException : 존재하지 않는 리소스 조회 -> 404
  *  - IllegalStateException    : 본인 소유가 아닌 리소스 수정/삭제/처리 시도 -> 403
  *  - MethodArgumentNotValidException (@Valid 검증 실패) -> 400
+ *  - DataIntegrityViolationException (DB 제약조건 위반: 길이 초과, unique 중복 등) -> 400
  *  - 그 외 모든 예외 -> 500
  */
 @RestControllerAdvice
@@ -50,6 +52,31 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message(message)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        String rawMessage = e.getMostSpecificCause() != null
+                ? e.getMostSpecificCause().getMessage()
+                : e.getMessage();
+
+        String userMessage;
+        if (rawMessage != null && rawMessage.contains("Data too long")) {
+            userMessage = "입력하신 내용이 너무 깁니다. 글자 수를 줄여서 다시 시도해주세요.";
+        } else if (rawMessage != null && (rawMessage.contains("Duplicate entry") || rawMessage.contains("Duplicate"))) {
+            userMessage = "이미 존재하는 값입니다. 다른 값을 입력해주세요.";
+        } else if (rawMessage != null && rawMessage.contains("doesn't have a default value")) {
+            userMessage = "필수 항목이 누락되었습니다. 잠시 후 다시 시도해주세요.";
+        } else {
+            userMessage = "요청하신 내용을 처리할 수 없습니다. 입력값을 확인해주세요.";
+        }
+
+        ErrorResponse body = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(userMessage)
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
