@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 public class SecurityConfig implements WebMvcConfigurer {
@@ -30,6 +31,9 @@ public class SecurityConfig implements WebMvcConfigurer {
         return http.build();
     }
 
+    @Value("${turnelKagamine}")
+    private String turnelKagamine;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
 
@@ -39,7 +43,10 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "http://localhost:5500",
                         "http://localhost:8080",
                         "http://localhost:8081",
-                        "https://aspect-engineers-ban-physician.trycloudflare.com"
+                        "https://aspect-engineers-ban-physician.trycloudflare.com",
+                        "https://appropriations-server-seattle-order.trycloudflare.com/",
+                        turnelKagamine
+                        // 가변적인 이 부분도 프로퍼티에 넣을까 고민중>>넣음
                 )
                 .allowedMethods(
                         "GET",
