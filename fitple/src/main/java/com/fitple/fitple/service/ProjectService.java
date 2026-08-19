@@ -22,6 +22,7 @@ import com.fitple.fitple.repository.ProjectMemberRepository;
 import com.fitple.fitple.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -114,6 +115,7 @@ public class ProjectService {
      * 최종 확정된 프로젝트 정보를 저장한다.
      * 생성과 동시에: 작성자를 팀원으로 자동 등록, 초대 QR 생성, 채팅방 생성.
      */
+    @Transactional
     public ProjectCreateResponse createProject(ProjectCreateRequest request, Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. memberId=" + memberId));
@@ -168,6 +170,7 @@ public class ProjectService {
     /**
      * 프로젝트 수정. 게시자 본인만 수정 가능하다.
      */
+    @Transactional
     public void updateProject(Long projectId, ProjectUpdateRequest request, Long memberId) {
         Project project = getProjectOrThrow(projectId);
         validateOwner(project, memberId);
@@ -188,6 +191,7 @@ public class ProjectService {
      * 프로젝트 삭제. 게시자 본인만 삭제 가능하다.
      * 연관된 ProjectMember를 먼저 정리해야 FK 제약 위반이 나지 않는다.
      */
+    @Transactional
     public void deleteProject(Long projectId, Long memberId) {
         Project project = getProjectOrThrow(projectId);
         validateOwner(project, memberId);
@@ -257,6 +261,7 @@ public class ProjectService {
     /**
      * 프로젝트 팀원들의 프로필을 분석해 AI(Gemini)가 역할을 배정한다.
      */
+    @Transactional
     public List<AssignRoleResponse> assignRoles(Long projectId) {
         Project project = getProjectOrThrow(projectId);
         List<ProjectMember> members = projectMemberRepository.findByProjectId(projectId);
