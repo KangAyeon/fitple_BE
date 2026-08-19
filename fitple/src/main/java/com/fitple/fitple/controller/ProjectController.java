@@ -120,6 +120,14 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.assignRoles(projectId));
     }
 
+    @Operation(summary = "초대 링크로 프로젝트 조회", description = "QR코드/초대링크의 inviteCode로 프로젝트 정보를 조회합니다. 로그인 불필요.")
+    @GetMapping("/invite/{inviteCode}")
+    public ResponseEntity<ProjectResponse> getProjectByInviteCode(
+            @PathVariable String inviteCode
+    ) {
+        return ResponseEntity.ok(projectService.getProjectByInviteCode(inviteCode));
+    }
+
     private Long getMemberIdOrThrow(HttpSession session) {
         Long memberId = (Long) session.getAttribute("memberId");
         if (memberId == null) {
