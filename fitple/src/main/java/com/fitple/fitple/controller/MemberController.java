@@ -10,6 +10,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import com.fitple.fitple.domain.Member;
 import jakarta.servlet.http.HttpSession;
 
@@ -20,6 +25,40 @@ public class MemberController {
 
     private final MemberService memberService;
 
+//    @PostMapping("/signin")
+//    public SigninResponse signin(
+//            @Valid @RequestBody SigninRequest request,
+//            HttpSession session
+//    ) {
+//        SigninResponse response = memberService.signin(request);
+//
+//        if (response.isSuccess()) {
+//            Member member = memberService.getMemberByLoginId(request.getLoginId());
+//            session.setAttribute("memberId", member.getId());
+//        }
+//
+//        return response;
+//    }
+    @Operation(summary = "로그인")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "로그인 성공",
+                    headers = {
+                            @Header(
+                                    name = "Set-Cookie",
+                                    description = "로그인 세션 쿠키(JSESSIONID)",
+                                    schema = @io.swagger.v3.oas.annotations.media.Schema(
+                                            type = "string"
+                                    )
+                            )
+                    }
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "아이디 또는 비밀번호가 올바르지 않습니다."
+            )
+    })
     @PostMapping("/signin")
     public SigninResponse signin(
             @Valid @RequestBody SigninRequest request,
