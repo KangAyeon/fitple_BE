@@ -6,6 +6,8 @@ import com.fitple.fitple.dto.response.CheckIdResponse;
 import com.fitple.fitple.dto.response.SigninResponse;
 import com.fitple.fitple.dto.response.SignupResponse;
 import com.fitple.fitple.service.MemberService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -72,5 +74,43 @@ public class MemberController {
         }
 
         return response;
+    }
+    @PostMapping("/logout")
+    public SigninResponse logout(
+            HttpSession session,
+            HttpServletResponse response
+    ) {
+        session.invalidate();
+
+
+        // 만약 쿠키 완전삭제가 문제된다면 아래 4줄 주석하면 됨 (response addCookie MaDe)
+        Cookie cookie = new Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+
+        return SigninResponse.builder()
+                .success(true)
+                .message("로그아웃되었습니다.")
+                .build();
+    }
+    @PostMapping("/logoutYobi")
+    public SigninResponse logoutYobi(
+            HttpSession session,
+            HttpServletResponse response
+    ) {
+        session.invalidate();
+
+
+        // 만약 쿠키 완전삭제가 문제된다면 아래 4줄 주석 풀면 됨
+//        Cookie cookie = new Cookie("JSESSIONID", null);
+//        cookie.setPath("/");
+//        cookie.setMaxAge(0);
+//        response.addCookie(cookie);
+
+        return SigninResponse.builder()
+                .success(true)
+                .message("로그아웃되었습니다.")
+                .build();
     }
 }

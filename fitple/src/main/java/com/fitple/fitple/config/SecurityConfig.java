@@ -45,6 +45,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         "http://localhost:8081",
                         "https://aspect-engineers-ban-physician.trycloudflare.com",
                         "https://appropriations-server-seattle-order.trycloudflare.com",
+                        "https://fitpledeploy.vercel.app",
                         turnelKagamine
                 )
                 .allowedMethods(
