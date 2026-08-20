@@ -45,7 +45,10 @@ import com.fitple.fitple.service.AIRoadmapService;
 //import com.fitple.fitple.domain.ProjectMember;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
+import java.util.stream.Collectors;
+
+import com.fitple.fitple.service.OpenAiClient;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +73,8 @@ public class ChatService {
     private final AIRoadmapService aiRoadmapService;
 
     private final FileStorageService fileStorageService;
+
+    private final OpenAiClient openAiClient;
 
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
@@ -181,7 +186,7 @@ public class ChatService {
 
         List<ChatMessage> messages =
                 chatMessageRepository
-                        .findTopByChatRoomIdOrderByCreatedAtDesc(
+                        .findByChatRoomIdOrderByCreatedAtDesc(
                                 roomId,
                                 PageRequest.of(0, size)
                         );
@@ -370,6 +375,7 @@ public class ChatService {
 
         return aiRoadmapService.updateSchedule(updates);
     }
+
     @Transactional
     public List<RoadmapStageResponse> generateRoadmap(Long roomId) {
         return aiRoadmapService.generateRoadmap(roomId);
@@ -378,5 +384,73 @@ public class ChatService {
     @Transactional(readOnly = true)
     public RoadmapResponse getRoadmap(Long projectId) {
         return aiRoadmapService.getRoadmap(projectId);
+    }
+
+    @Transactional
+    public MeetingMinuteResponse generateMeetingMinuteByAI(Long roomId) {
+
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "존재하지 않는 채팅방입니다."
+                        ));
+
+        Project project = chatRoom.getProject();
+
+        List<ChatMessage> messages =
+                chatMessageRepository
+                        .findByChatRoomIdOrderByCreatedAtAsc(roomId);
+
+        if (messages.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "요약할 채팅 내용이 없습니다."
+            );
+        }
+
+        String conversation = messages.stream()
+                .map(message ->
+                        message.getMember().getName()
+                                + ": "
+                                + message.getContent()
+                )
+                .collect(Collectors.joining("\n"));
+
+        String prompt = """
+            다음은 프로젝트 채팅방에서 이루어진 대화입니다.
+
+            이 대화를 바탕으로 프로젝트 회의록을 작성해주세요.
+
+            다음 형식으로 정리해주세요.
+
+            [주요 논의 내용]
+            - 중요한 논의 내용을 정리
+
+            [결정된 사항]
+            - 실제로 결정된 내용을 정리
+
+            [해야 할 일]
+            - 대화에서 확인되는 작업 내용을 정리
+            - 담당자가 명확하다면 담당자도 표시
+
+            [기타 사항]
+            - 그 외 중요한 내용
+
+            대화 내용:
+            %s
+            """.formatted(conversation);
+
+        String aiResult = openAiClient.generateText(prompt);
+
+        MeetingMinute meetingMinute = MeetingMinute.builder()
+                .project(project)
+                .title("AI 회의록")
+                .content(aiResult)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        MeetingMinute savedMeetingMinute =
+                meetingMinuteRepository.save(meetingMinute);
+
+        return MeetingMinuteResponse.from(savedMeetingMinute);
     }
 }

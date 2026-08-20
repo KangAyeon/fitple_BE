@@ -147,6 +147,15 @@ public class ChatController {
         );
     }
 
+    @PostMapping("/rooms/{roomId}/meeting-minutes/ai-generate")
+    public ResponseEntity<MeetingMinuteResponse> generateMeetingMinuteByAI(
+            @PathVariable Long roomId
+    ) {
+        return ResponseEntity.ok(
+                chatService.generateMeetingMinuteByAI(roomId)
+        );
+    }
+
     @GetMapping("/rooms/{projectId}/meeting-minutes/{meetingMinuteId}")
     public ResponseEntity<MeetingMinuteResponse> getMeetingMinute(
             @PathVariable Long projectId,
